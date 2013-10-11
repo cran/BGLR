@@ -1,0 +1,12 @@
+SOURCES=$(wildcard *.c)
+
+OBJECTS = $(SOURCES:.c=.o)
+
+PKG_LIBS =  $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+
+PKG_CPPFLAGS=-I.
+
+all: $(SHLIB)
+
+clean:
+	@rm -f $(OBJECTS)
