@@ -1,5 +1,20 @@
+#
+#Rotines for Plink support
+#http://pngu.mgh.harvard.edu/~purcell/plink/
+#
+
+#The documentation for the C functions can be found in src/util_plink.c
 
 #This function will read a bed file (binary file for genotypes in plink format)
+#Arguments: 
+#bed_file: Name for bed file
+#bim_file: Name for bim file
+#fam_file: Name for fam file
+#na_strings: Missing value indicator
+#verbose: Logical, it TRUE it will print information generated when reading the bed file.
+#it returns a list with 3 components, n: number of individuals, p: number of markers, 
+#x, integer vector of dimensions n*p with genotypic information.
+#see demo/read_bed.R for an example
 read_bed=function(bed_file,bim_file,fam_file,na.strings=c("0","-9"),verbose=FALSE)
 {
 	#Extended map file (this gives the number of snps)
@@ -27,7 +42,10 @@ read_bed=function(bed_file,bim_file,fam_file,na.strings=c("0","-9"),verbose=FALS
 }
 
 #This function will read a ped file
-#FIXME: It assumes that the missing value is 0
+#Note: It assumes that the missing value is 0
+#It returns a list with 3 components, n: number of individuals, p: number of markers, 
+#x, integer vector of dommensions n*p with genotypic information.
+#see demo/read_ped.R for an example
 read_ped=function(ped_file)
 {
 	out=.Call("read_ped",ped_file)
@@ -35,6 +53,11 @@ read_ped=function(ped_file)
 }
 
 #This function will write a bed file (binary file for genotypes in plink format)
+#x: vector with genotypic information
+#n: number of individuals
+#p: number of markers
+#bed_file: Output file in bed format
+#See demo/write_bed.R for an example
 write_bed=function(x,n,p,bed_file)
 {
    	#Check inputs

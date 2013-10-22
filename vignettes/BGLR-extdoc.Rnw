@@ -34,9 +34,9 @@
 \title{BGLR: A Statistical Package for Whole Genome Regression and Prediction}
 
 %% for pretty printing and a nice hypersummary also set:
-\Plainauthor{Gustavo de los Campos, Paulino Perez} %% comma-separated
-\Plaintitle{BGLR: an R-package for Whole-Genome Regression} %% without formatting
-\Shorttitle{\pkg{BGLR}: an R-package for Whole-Genome Regression} %% a short title (if necessary)
+\Plainauthor{Paulino P\'erez, Gustavo de los Campos} %% comma-separated
+\Plaintitle{BGLR: A Statistical Package for Whole-Genome Regression} %% without formatting
+\Shorttitle{\pkg{BGLR}: An R-package for Whole-Genome Regression} %% a short title (if necessary)
 
 %% an abstract and keywords
 \Abstract{

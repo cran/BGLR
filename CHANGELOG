@@ -7,10 +7,10 @@ version 1.0 (2012-10-01)
   
   For continuous traits:
   
-  -Bayes A
-  -Bayes B
-  -Bayes C-pi
-  -RKHS (reproducing kernel Hilbert spaces)
+  -BayesA
+  -BayesB
+  -BayesC-pi
+  -RKHS(reproducing kernel Hilbert spaces)
   
   For discrete traits
   
@@ -22,3 +22,7 @@ version 1.0 (2012-10-01)
 version 1.0.1 
 
   initial release
+
+version 1.0.2
+
+  some documentation fixes, some comments added to the code

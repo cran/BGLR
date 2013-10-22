@@ -50,7 +50,7 @@ char * read_string(FILE *fp, int *nchar)
                 }else{
                    if(c!=EOF) 
                    {
-                     buffer[count]=c;           //FIXME: This is weird if I do not take this into account a strange symbol appears as an extra line
+                     buffer[count]=c;           //NOTE: This is weird if I do not take this into account a strange symbol appears as an extra line
                      count++;
                    }  
                 }
@@ -93,9 +93,9 @@ WARNING: the ped_file should be absolute
 */
 
 /*
-FIXME: 	Better way to know the number of individuals and snps (no way, only if the user already knows!!!)
-	Better way to know allele one and allele two
-	Detect snps that are non biallelic
+Some improvementes: 	Better way to know the number of individuals and snps (no way, only if the user already knows!!!)
+			Better way to know allele one and allele two
+			Detect snps that are non biallelic
 */
 
 SEXP read_ped(SEXP Ped)

@@ -1,3 +1,8 @@
+#This function creates an incidence matrix that will be included in the 
+#linear term of the model
+#Arguments: LT, Linear term, an object of the class "formula" that also includes
+#optionally a data.frame to obtain the information
+#It returns the incidence matrix
 set.X=function(LT)
 {	
 	flag=TRUE
@@ -27,6 +32,8 @@ set.X=function(LT)
 
 
 ## Fixed Effects ##################################################################
+#Function for initializing regression coefficients for Fixed effects.
+#All the arguments are defined in the function BGLR
 setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
 {
 
@@ -45,10 +52,14 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
     {
         stop(paste(" Number of rows of LP ",j,"  not equal to the number of phenotypes.",sep=""))
     }
+
+    #weight inputs if necessary
         
     LT$X=sweep(LT$X,1L,weights,FUN="*")        #weights
     LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
 	
+    
+    #Objects for saving posterior means from MCMC
     LT$b=rep(0,LT$p)
     LT$post_b=rep(0,LT$p)
     LT$post_b2=rep(0,LT$p)
@@ -69,8 +80,11 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
 }
 
 ## Gaussian Regression ############################################################
+#Function for initializing regression coefficients for Ridge Regression.
+#All the arguments are defined in the function BGLR
 setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 {
+    #Check inputs
 
     if(is.null(LT$X)) LT$X=set.X(LT)
        
@@ -87,12 +101,14 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
     {
       stop(paste(" Number of rows of LP ",j,"  not equal to the number of phenotypes.",sep=""))
     }   
-    
+
+    #Weight inputs if necessary
     LT$X=sweep(LT$X,1L,weights,FUN="*")  #weights
     LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
     sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
     
-
+     
+    #Default df for the prior assigned to the variance of marker effects
     if(is.null(LT$df0))
     {
 	LT$df0=5
@@ -104,6 +120,8 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
         LT$R2=R2/nLT
     }
 
+ 
+    #Default scale parameter for the prior assigned to the variance of marker effects
     if(is.null(LT$S0))
     {
         if(LT$df0<=0) stop("df0>0 in BRR in order to set S0\n")
@@ -112,7 +130,9 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 	LT$S0=((var(y,na.rm=TRUE)*LT$R2)/(LT$MSx))*(LT$df0+2)  
 	cat(paste(" Scale parameter of LP ",j,"  set to default value (",LT$S0,") .\n",sep=""))
     }
-	
+
+    
+    #Objects for saving posterior means from MCMC
     LT$b=rep(0,LT$p)
     LT$post_b=rep(0,LT$p)
     LT$post_b2=rep(0,LT$p)
@@ -133,9 +153,15 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
     return(LT)
 }
 
-#Ridge regression using windows
+#Ridge regression using sliding windows
+#This is just a Ridge Regression with sliding windows, 
+#LT has two extra attributes: window_list, and n_windows
+#If n_windows is given the the program will obtain a list with the markers in each sliding window.
+
 setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 {
+
+    #Check the inputs
     if(is.null(LT$X)) LT$X=set.X(LT)
    
     LT$X=as.matrix(LT$X)
@@ -154,7 +180,8 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
     {
       stop(paste(" Number of rows of LP ",j,"  not equal to the number of phenotypes.",sep=""))
     }   
-    
+
+    #Weight inputs if necessary
     LT$X=sweep(LT$X,1L,weights,FUN="*")  #weights
     LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
     sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
@@ -227,8 +254,13 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 }
 
 ## Bayesian LASSO ############################################################
+## The well known Bayesian LASSO (Park and Casella, 2008) and 
+## de los Campos et al (2009). 
+#  This functions simply sets hyper-parameters for quantities involved in BL regression
+
 setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 {
+    #Check the inputs
     if(is.null(LT$minAbsBeta)) LT$minAbsBeta=1e-9
 
     if(is.null(LT$X)) LT$X=set.X(LT)
@@ -246,7 +278,8 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
     {
         stop(paste(" Number of rows of LP ",j,"  not equal to the number of phenotypes.",sep=""))
     } 
-    
+
+    #Wheight inputs if necessary
     LT$X=sweep(LT$X,1L,weights,FUN="*")  #weights
     LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
     sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
@@ -324,6 +357,8 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 		}
     }
 
+    #Objects to storing information for MCMC iterations
+
     LT$b=rep(0,LT$p)
     LT$post_b=rep(0,LT$p)
     LT$post_b2=rep(0,LT$p)
@@ -349,8 +384,14 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
 
 #Reproducing kernel Hilbert spaces
+#This function simply sets hyperparamters and prepares inputs 
+#for Reproducing Kernel Hilbert Spaces. The algorithm used here is 
+#Fully described in de los Campos et al (2010).
+
 setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)  
 {
+
+    #Checking inputs
     if(is.null(LT$V))
     {
         if(is.null(LT$K)) stop(paste(" Kernel for linear term ",j, " was not provided, specify it with list(K=?,model='RKHS'), where ? is the kernel matrix\n",sep=""))
@@ -364,7 +405,8 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 	#This code was rewritten to speed up computations
         #T = diag(weights)   
         #LT$K = T %*% LT$K %*% T 
-
+        
+        #Weight kernels
 	for(i in 1:nrow(LT$K))
         {
 		#j can not be used as subindex because its value is overwritten
@@ -387,6 +429,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
     }
     
     #Defaul value for tolD
+    #Only those eigenvectors whose eigenvalues> tolD are kept.
     if (is.null(LT$tolD)) 
     {
        LT$tolD = 1e-10
@@ -399,7 +442,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
     LT$d = LT$d[tmp]
     LT$V = LT$V[, tmp]
     
-    #Default degrees of freedom and scale parameter
+    #Default degrees of freedom and scale parameter associated with the variance component for marker effect
     if (is.null(LT$df0)) 
     {
       LT$df0 = 5
@@ -434,6 +477,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
        unlink(fname) 
     }
 
+    #Objects for storing information for MCMC iterations
     LT$fileOut=file(description=fname,open="w")
     LT$post_varU=0
     LT$post_varU2=0
@@ -446,7 +490,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 }
 
 ###Bayes B and C########################################################################################################################################                 
-#Pseudo BayesB with random scale and random proportion of markers in
+#Pseudo BayesB with random scale and random proportion of markers "in" the model
 #See Variable selection for regression models, 
 #Lynn Kuo and Bani Mallic, 1998. 
 #Bayes C (Habier et al., 2011)
@@ -463,6 +507,7 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
   LT$p=ncol(LT$X)
   LT$colNames=colnames(LT$X)
 
+  #Weight inputs if necessary
   LT$X=sweep(LT$X,1L,weights,FUN="*")  #weights
   LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
   sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
@@ -477,19 +522,25 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
     LT$R2=R2/nLT
     cat(paste("  R2 in LP ",j," was missing and was set to ",LT$R2,"\n",sep=""))
   }
-    
+
+  #Default value for the degrees of freedom associated with the distribution assigned to the variance
+  #of marker effects
   if(is.null(LT$df0))
   {
     LT$df0= 5
     cat(paste("  DF in LP ",j," was missing and was set to ",LT$df0,"\n",sep=""))
   }
 
+
+  #Default value for a marker being "in" the model
   if(is.null(LT$probIn))
   {
     LT$probIn=0.5
     cat(paste("  probIn in LP ",j," was missing and was set to ",LT$probIn,"\n",sep=""))
   } 
 
+
+   #Default value for prior counts
   if(is.null(LT$counts))
   {
     LT$counts=10
@@ -499,6 +550,8 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
   LT$countsIn=LT$counts * LT$probIn
   LT$countsOut=LT$counts - LT$countsIn
 
+  #Default value for the scale parameter associated with the distribution assigned to the variance of 
+  #marker effects
   if(is.null(LT$S0))
   {
      if(LT$df0<=0) stop(paste("df0>0 in ",model," in order to set S0\n",sep=""));
@@ -540,7 +593,8 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 	tmp=c('probIn','scale')
    	write(tmp, ncolumns = LT$p, file = LT$fileOut, append = TRUE)
   }
-   
+
+  #Objects for storing MCMC information 
   LT$post_varB=0
   LT$post_varB2=0
   LT$post_d=0
@@ -563,18 +617,22 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 #Genetics 157: 1819-1829, Modified so that the Scale parameter is estimated from data (a gamma prior is assigned)
 
 setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
-{ 
+{
+
+  #Ckecking inputs 
   if(is.null(LT$X)) LT$X=set.X(LT)
  
   LT$X=as.matrix(LT$X)
   LT$p=ncol(LT$X)
   LT$colNames=colnames(LT$X)
-  
+
+  #Weight inputs if necessary
   LT$X=sweep(LT$X,1L,weights,FUN="*")  #weights
   LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
   sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
   LT$MSx=sum(LT$x2)/n-sumMeanXSq
 
+  #Default degrees of freedom for the prior assigned to the variance of markers
   if(is.null(LT$df0))
   {
      LT$df0 = 5  
@@ -584,14 +642,16 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
   	LT$R2=R2/nLT
     cat(paste("  R2 in LP ",j," was missing and was set to ",LT$R2,"\n",sep=""))
   }
+
+  #Defuault scale parameter for the prior assigned to the variance of markers
   if(is.null(LT$S0))
   {
      if(LT$df0<=0) stop("df0>0 in BayesA in order to set S0\n")
      LT$S0 = var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)
      cat(paste(" Scale paramter in LP ",j," was missing and was set to ",LT$S0,"\n",sep=""))
   }
+
   # Improvement: Treat Scale as random, assign a gamma density 
-  
   if(is.null(LT$shape0))
   {
      LT$shape0=1.1
@@ -617,6 +677,7 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
     
   LT$X=as.vector(LT$X)
   
+  #Objects for storing information generated during MCMC iterations
   LT$post_varB=0
   LT$post_varB2=0
   
@@ -630,12 +691,13 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 }
 
 ##################################################################################################
+#Just the welcome function that will appear every time that your run the program
 welcome=function()
 {
   cat("\n");
   cat("#--------------------------------------------------------------------#\n");
   cat("#        _\\\\|//_                                                     #\n");
-  cat("#       (` o-o ')      BGLR v1.0 build 73                            #\n");
+  cat("#       (` o-o ')      BGLR v1.0.2 build 78                          #\n");
   cat("#------ooO-(_)-Ooo---------------------------------------------------#\n");
   cat("#                      Bayesian Generalized Linear Regression        #\n");
   cat("#                      Gustavo de los Campos, gdeloscampos@gmail.com #\n");
@@ -651,6 +713,7 @@ welcome=function()
 
 ##################################################################################################
 #The density of a scaled inverted chi-squered distribution
+#df: degrees of freedom, S: Scale parameter
 dScaledInvChisq=function (x, df, S)
 {
     tmp = dchisq(S/x, df = df)/(x^2)
@@ -660,7 +723,8 @@ dScaledInvChisq=function (x, df, S)
 
 ##################################################################################################
 #The density function for lambda
-
+#Density function for Regularization parameter in Bayesian LASSO
+#Rate: rate parameter, shape: the value for the shape parameter
 dLambda=function (rate, shape, lambda) 
 {
     tmp = dgamma(x = I(lambda^2), rate = rate, shape = shape) * 2 * lambda
@@ -669,7 +733,6 @@ dLambda=function (rate, shape, lambda)
 
 ##################################################################################################
 #Metropolis sampler for lambda in the Bayesian LASSO
-
 metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp = 0)
 {
     lambda2 = lambda^2
@@ -693,6 +756,7 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
 
 ##################################################################################################
 #Startup function
+#this function is executed once the library is loaded
 .onAttach = function(library, pkg)
 {
   Rv = R.Version()
@@ -700,7 +764,7 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
     stop("This package requires R 2.15.0 or later")
   assign(".BGLR.home", file.path(library, pkg),
          pos=match("package:BGLR", search()))
-  BGLR.version = "1.0 (2013-10-08), build 73"
+  BGLR.version = "1.0.2 (2013-10-15), build 78"
   assign(".BGLR.version", BGLR.version, pos=match("package:BGLR", search()))
   if(interactive())
   {
@@ -719,7 +783,8 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
 #a: lower bound
 #b: upper bound
 #NOTES: 1) This routine was taken from bayesm package, December 18, 2012
-#       2) The inputs are not checked
+#       2) The inputs are not checked, 
+#It is assumed that are ok.
 rtrun=function (mu, sigma, a, b) 
 {
     FA = pnorm(((a - mu)/sigma))
@@ -737,6 +802,10 @@ extract=function(z,y,j) subset(as.data.frame(z,y),subset=(y==j))
 #      Chhikara and Folks, The Inverse Gaussian Distribution,
 #      Marcel Dekker, 1989, page 53.
 # GKS  15 Jan 98
+#n: Number of samples
+#nu: nu parameter
+#lambda: lambda parameter
+
 rinvGauss=function(n, nu, lambda)
 {
 	if(any(nu<=0)) stop("nu must be positive")
@@ -915,6 +984,8 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
     post_varE = 0
     post_varE2 = 0
 
+    #File for storing sample for varE 
+
     fname = paste(saveAt, "varE.dat", sep = "")
 
     if (rmExistingFiles) {
@@ -925,6 +996,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
 
     nLT = ifelse(is.null(ETA), 0, length(ETA))
 
+    #Setting the linear terms
     if (nLT > 0) {
         for (i in 1:nLT) {
             if (!(ETA[[i]]$model %in% c("FIXED", "BRR", "BL", "BayesA", "BayesB","BayesC", "RKHS","BRR_windows"))) 
@@ -943,6 +1015,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                               )
         }
     }
+
     # Gibbs sampler
     time = proc.time()[3]
     for (i in 1:nIter) {
@@ -1491,7 +1564,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
 #the idea is to maintain the compatibility with the function BLR in 
 #the package BLR that was released in 2010, updated in 2011 and 2012
 
-#FIXME: thin2 parameter is missing in BGLR
+#NOTE: thin2 parameter is missing in BGLR, so it will be removed
 
 BLR=function (y, XF = NULL, XR = NULL, XL = NULL, GF = list(ID = NULL, 
     A = NULL), prior = NULL, nIter = 1100, burnIn = 100, thin = 10, 
@@ -1549,7 +1622,7 @@ BLR=function (y, XF = NULL, XR = NULL, XL = NULL, GF = list(ID = NULL,
                           minAbsBeta=minAbsBeta)
     }
 
-    #FIXME: In original BLR IDS are used to buid A matrix Z,
+    #NOTE: In original BLR IDS are used to buid A matrix Z,
     #and then run the model y=Zu+e, u~MN(0,varU*A), and then using the Cholesky factorization
     #it was possible to fit the model. The algorithm used here is different (Orthogonal variables)
     #and it may be that the IDS are not longer necessary
