@@ -68,7 +68,18 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
 # this will preserve the class of LT$X
       LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
     }
-    LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+# 'apply' converts a sparse matrix to a dense one, which is not what we want
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
+
  
     #Objects for saving posterior means from MCMC
     LT$b=rep(0,LT$p)
@@ -122,7 +133,16 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
       LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
     }
-    LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
 
 # colMeans is more efficient on sparse matrices 
 #    sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
@@ -207,7 +227,16 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
       LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
     }
-    LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
 
     sumMeanXSq = sum(colMeans(LT$X)^2)    
 
@@ -308,7 +337,16 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
       LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
     }
-    LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
 
     sumMeanXSq = sum(colMeans(LT$X)^2)
 	
@@ -548,7 +586,16 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 
     LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
   }
-  LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
 
   sumMeanXSq = sum(colMeans(LT$X)^2)
   LT$MSx=sum(LT$x2)/n-sumMeanXSq
@@ -677,7 +724,16 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 
     LT$X = as(Diagonal(x=weights) %*% LT$X, class(LT$X))
     }
-    LT$x2=apply(LT$X,2L,function(x) sum(x^2))  #the sum of the square of each of the columns
+
+    if(class(LT$X)=="matrix") {
+
+      LT$x2 = apply(LT$X,2L,function(x) sum(x^2)) #the sum of the square of each of the columns
+
+    } else {
+
+        LT$x2 = diag(crossprod(X))
+
+      }
 
     sumMeanXSq = sum(colMeans(LT$X)^2)
     LT$MSx=sum(LT$x2)/n-sumMeanXSq
