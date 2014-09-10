@@ -1,4 +1,5 @@
 useDynLib(BGLR)
+import(Matrix)
 export(BGLR,BLR,plot.BGLR,residuals.BGLR, predict.BGLR,
        summary.BGLR,
        effects.BGLR, 
