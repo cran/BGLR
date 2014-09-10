@@ -74,7 +74,9 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
     LT$b=rep(0,LT$p)
     LT$post_b=rep(0,LT$p)
     LT$post_b2=rep(0,LT$p)
-    fname=paste(saveAt,"ETA_",j,"_b.dat",sep="")
+
+    fname=paste(saveAt,LT$Name,"_b.dat",sep="")
+    
     LT$NamefileOut=fname; 
 
     if(rmExistingFiles)
@@ -749,7 +751,7 @@ welcome=function()
   cat("#                      Bayesian Generalized Linear Regression        #\n");
   cat("#                      Gustavo de los Campos, gdeloscampos@gmail.com #\n");
   cat("#    .oooO     Oooo.   Paulino Perez, perpdgo@gmail.com              #\n");
-  cat("#    (   )     (   )   June, 2014                                 #\n");
+  cat("#    (   )     (   )   June, 2014                                    #\n");
   cat("#_____\\ (_______) /_________________________________________________ #\n");
   cat("#      \\_)     (_/                                                   #\n");
   cat("#                                                                    #\n");
@@ -811,7 +813,7 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
     stop("This package requires R 2.15.0 or later")
   assign(".BGLR.home", file.path(library, pkg),
          pos=match("package:BGLR", search()))
-  BGLR.version = "1.0.2 (2014-06-04), build 90"
+  BGLR.version = "1.0.3 (2014-06-04), build 90"
   assign(".BGLR.version", BGLR.version, pos=match("package:BGLR", search()))
   if(interactive())
   {
