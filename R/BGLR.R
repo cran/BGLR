@@ -76,7 +76,7 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
@@ -140,7 +140,7 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
@@ -234,7 +234,7 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
@@ -344,7 +344,7 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
@@ -593,7 +593,7 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
@@ -731,7 +731,7 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 
     } else {
 
-        LT$x2 = diag(crossprod(X))
+        LT$x2 = diag(crossprod(LT$X))
 
       }
 
