@@ -44,13 +44,13 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles)
     if(is.null(LT$X)) LT$X=set.X(LT)
 # replaced by checking the class of the design matrix     
 #    LT$X=as.matrix(LT$X)
-     if(!class(LT$X)%in%c("matrix","dgCMatrix")) {stop(paste(" LP " ,j ,"has to be of type 'matrix' or 'dgCMatrix'"))}
+    if(!class(LT$X)%in%c("matrix","dgCMatrix")) {stop(paste(" LP " ,j ,"has to be of type 'matrix' or 'dgCMatrix'"))}
     LT$p=ncol(LT$X)
     LT$colNames=colnames(LT$X)
 	
 # is.na() generates a matrix of size LT$X, anyNA is fast and doesnt allocate memory
 #    if(any(is.na(LT$X)))
-     if(anyNA(LT$X))
+    if(anyNA(LT$X))
     { 
       stop(paste(" LP ",j," has NAs in X",sep=""))
     }
@@ -537,7 +537,7 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles)
 
   if(anyNA(LT$X))
   { 
-    stop(paste(" LP ",j," has NAs in X",sep="")
+    stop(paste(" LP ",j," has NAs in X",sep=""))
   }
     
   if(nrow(LT$X)!=n)
