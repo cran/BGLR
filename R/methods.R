@@ -95,10 +95,12 @@ predict.BGLR=function(object,newdata,...)
 	object$yHat
 }
 
-effects.BGLR=function(object,...){
-    if(!inherits(object, "BGLR")) stop("This function only works for objects of class `BGLR'")
-	object$ETA	
-}
+#effects.BGLR=function(object,...)
+#{
+#    if(!inherits(object, "BGLR")) stop("This function only works for objects of class `BGLR'")
+#    object$ETA	
+#}
+
 
 plot.BGLR=function(x,...)
 {
@@ -109,5 +111,3 @@ plot.BGLR=function(x,...)
   plot(x$y,x$yHat,main="Training",xlim=limits,ylim=limits,xlab='Response',ylab='Prediction'); 
   abline(a=0,b=1,lty=3)
 }
-
-

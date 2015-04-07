@@ -10,7 +10,7 @@
   BGLR(y, response_type = "gaussian", a=NULL, b=NULL,ETA = NULL, nIter = 1500,
        burnIn = 500, thin = 5, saveAt = "", S0 = NULL, 
        df0 =5, R2 = 0.5, weights = NULL,
-       verbose = TRUE, rmExistingFiles = TRUE)
+       verbose = TRUE, rmExistingFiles = TRUE, groups=NULL)
 
 }
 \arguments{
@@ -55,7 +55,8 @@
              variance partition specified by R2 and the prior distribution is relatively flat at the mode. For 
              further details see the vignettes in the package or \url{http://genomics.cimmyt.org/BGLR-extdoc.pdf}.}
    \item{verbose}{(logical) if TRUE the iteration history is printed, default TRUE.}
-    \item{rmExistingFiles}{(logical) if TRUE removes existing output files from previous runs, default TRUE.}
+   \item{rmExistingFiles}{(logical) if TRUE removes existing output files from previous runs, default TRUE.}
+   \item{groups}{(factor) a vector of the same length of y that associates observations with groups, each group will have an associated variance component for the error term.}
 }
 
 \details{

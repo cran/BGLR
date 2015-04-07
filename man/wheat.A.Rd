@@ -8,7 +8,7 @@ from a pedigree that traced back many generations.
 This relationship matrix was derived using the
 Browse application of the International Crop Information
 System (ICIS), as described in  
-\url{http://cropwiki.irri.org/icis/index.php/TDM_GMS_Browse} (McLaren \emph{et al.} 2005).
+\url{http://repository.cimmyt.org/xmlui/bitstream/handle/10883/3488/72673.pdf} (McLaren \emph{et al.} 2000, 2005).
 
 }
 
@@ -17,6 +17,11 @@ System (ICIS), as described in
 }
 
 \references{
+
+McLaren, C. G., L. Ramos, C. Lopez, and W. Eusebio. 2000. ``Applications of the geneaology manegment system.''
+In \emph{International Crop Information System. Technical  Development Manual, version VI}, edited by McLaren, C. G., J.W. White
+and P.N. Fox. pp. 5.8-5.13. CIMMyT, Mexico: CIMMyT and IRRI.
+
 McLaren, C. G., R. Bruskiewich, A.M. Portugal, and A.B. Cosico. 2005. The International Rice Information System. 
 A platform for meta-analysis of rice crop data. \emph{Plant Physiology} \bold{139}: 637-642.
 }
