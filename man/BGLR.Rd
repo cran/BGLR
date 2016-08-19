@@ -15,7 +15,7 @@
 }
 \arguments{
    \item{y}{(numeric, \eqn{n}{n}) the data-vector (NAs allowed).}
-   \item{response_type}{(string) admits values \code{"gausian"} or \code{"ordinal"}. The Gaussian outcome may be censored or not (see below). 
+   \item{response_type}{(string) admits values \code{"gaussian"} or \code{"ordinal"}. The Gaussian outcome may be censored or not (see below). 
                         If \code{response_type="gaussian"}, \code{y} should be coercible to numeric. If \code{response_type="ordinal"}, \code{y}
                          should be coercible to character, and the order of the outcomes is determined based on the
                         alphanumeric order \code{(0<1<2..<a<b..)}. For ordinal traits the probit link is used.}
@@ -42,7 +42,7 @@
               (K) must be provided. Further details about the models implemented in BGLR see the vignettes in the package or \url{http://genomics.cimmyt.org/BGLR-extdoc.pdf}. 
              }
    \item{weights}{(numeric, \eqn{n}{n}) a vector of weights, may be \code{NULL}. If weights is not \code{NULL}, the 
-                  residual variance of each data-point is set to be proportional to the square of the weight. Only
+                  residual variance of each data-point is set to be proportional to the inverse of the squared-weight. Only
                   used with Gaussian outcomes.}
    \item{nIter,burnIn, thin}{(integer) the number of iterations, burn-in and thinning.}
    \item{saveAt}{(string) this may include a path and a pre-fix that will be added to the name of the files that are saved as the program runs.}

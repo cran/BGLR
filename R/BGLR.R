@@ -94,8 +94,8 @@ setLT.Fixed=function(LT,n,j,y,weights,nLT,saveAt,rmExistingFiles,groups,nGroups)
 ## Gaussian Regression ############################################################
 #Function for initializing regression coefficients for Ridge Regression.
 #All the arguments are defined in the function BGLR
-setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,groups,nGroups,verbose)
-{
+setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,groups,nGroups,verbose,thin,nIter,burnIn){ #*#
+
     #Check inputs
 
     if(is.null(LT$X)) LT$X=set.X(LT)
@@ -183,18 +183,29 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,groups,nGroups
     LT$fileOut=file(description=fname,open="w")
     LT$X=as.vector(LT$X)
     LT$x2=as.vector(LT$x2)
+    
+    #*#
+    if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
+    if(LT$saveEffects){
+    	if(is.null(LT$thin)){ LT$thin=thin }
+    	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
+    	if(rmExistingFiles){ unlink(fname) }
+    	LT$fileEffects=file(fname,open='wb')
+    	nRow=floor((nIter-burnIn)/LT$thin)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    }#*#
 
     return(LT)
 }
 
-#Ridge regression using sliding windows
-#This is just a Ridge Regression with sliding windows, 
-#LT has two extra attributes: window_list, and n_windows
-#If n_windows is given the the program will obtain a list with the markers in each sliding window.
+#Ridge regression using sets of markers
+#This is just a Ridge Regression set-specific variances, 
+#LT has an extra attribute: sets
 
-setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose)
+setLT.BRR_sets=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose,thin,nIter,burnIn)
 {
 
+	
     #Check the inputs
     if(is.null(LT$X)) LT$X=set.X(LT)
    
@@ -202,16 +213,20 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbos
     LT$p=ncol(LT$X)
     LT$colNames=colnames(LT$X)
 
-    if(is.null(LT$windows_list) & is.null(LT$nwindows)) stop("Provide windows_list or nwindows\n");
-    if((!is.null(LT$windows_list)) & (!is.null(LT$nwindows))) stop("Provide only windows_list or nwindows but no both\n");
+    if(is.null(LT$sets)) stop("Argument sets (a vector grouping effects into sets) is required in BRR_sets\n");
+  	if(length(LT$sets)!=LT$p){ stop(" The length of sets must be equal to the number of predictors\n") }
 	
-    if(any(is.na(LT$X)))
-    { 
+	LT$sets<-as.integer(factor(LT$sets,ordered=TRUE,levels=unique(LT$sets)))
+		
+	LT$n_sets=length(unique(LT$sets))	
+  	
+  	if(LT$n_sets>=LT$p){ stop("The number of sets is greater or equal than the number of effects!\n") }
+    
+    if(any(is.na(LT$X))){ 
       stop(paste(" LP ",j," has NAs in X",sep=""))
     }
     
-    if(nrow(LT$X)!=n)
-    {
+    if(nrow(LT$X)!=n){
       stop(paste(" Number of rows of LP ",j,"  not equal to the number of phenotypes.",sep=""))
     }   
 
@@ -221,76 +236,58 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbos
     sumMeanXSq = sum((apply(LT$X,2L,mean))^2)
     
 
-    if(is.null(LT$df0))
-    {
-	LT$df0=5
-	if(verbose)
-	{
-		cat(paste(" Degree of freedom of LP ",j,"  set to default value (",LT$df0,").\n",sep=""))
-	}
+    if(is.null(LT$df0)){
+		LT$df0=5
+		if(verbose){
+			cat(paste(" Degree of freedom of LP ",j,"  set to default value (",LT$df0,").\n",sep=""))
+		}
     }
 
-    if(is.null(LT$R2))
-    { 
+    if(is.null(LT$R2)){ 
         LT$R2=R2/nLT
     }
 
-    if(is.null(LT$S0))
-    {
-        if(LT$df0<=0) stop("df0>0 in BRR in order to set S0\n")
+    if(is.null(LT$S0))    {
+        if(LT$df0<=0) stop("df0 must be greater than 0 \n")
 
-	LT$MSx=sum(LT$x2)/n-sumMeanXSq       
-	LT$S0=((var(y,na.rm=TRUE)*LT$R2)/(LT$MSx))*(LT$df0+2) 
-	if(verbose)
-	{ 
-		cat(paste(" Scale parameter of LP ",j,"  set to default value (",LT$S0,") .\n",sep=""))
-	}
-    }
-
-    if(is.null(LT$windows_list))
-    {
-    	windows_list=list()
-        nwindows=LT$nwindows
-
-    	if(nwindows>1)
-    	{
-        	s=as.integer(LT$p/nwindows)
-        	for(i in 1:(nwindows-1))
-        	{
-           		windows_list[[i]]=c(1:s)+s*(i-1)
-        	}
-        	windows_list[[nwindows]]=c(((nwindows-1)*s+1):LT$p)
-    	}else{
-          	stop(paste("It does not make any sense to call this function with ",nwindows, " window(s)!!!\n"))
-    	}
-
-    	LT$windows_list=windows_list
+		LT$MSx=sum(LT$x2)/n-sumMeanXSq       
+		LT$S0=((var(y,na.rm=TRUE)*LT$R2)/(LT$MSx))*(LT$df0+2) 
+		if(verbose){ 
+			cat(paste(" Scale parameter of LP ",j,"  set to default value (",LT$S0,") .\n",sep=""))
+		}
     }
     
-    if(is.null(LT$nwindows))
-    {
-	LT$nwindows=length(LT$windows_list)
-        if(LT$nwindows<=1) stop(paste("The length of the window_list that you provided is ",LT$nwindows," we are expecting a list of length at least 2\n"));
-    }
-	
+    LT$DF1=table(LT$sets)+LT$df0
+    
     LT$b=rep(0,LT$p)
     LT$post_b=rep(0,LT$p)
     LT$post_b2=rep(0,LT$p)
     LT$varB=rep(LT$S0/(LT$df0+2),LT$p)
-    LT$post_varB=0                 
-    LT$post_varB2=0
+	LT$post_varSets=rep(0,LT$n_sets)
+	LT$post_varSets2<-rep(0,LT$n_sets)
+    LT$post_varB=rep(0 ,LT$p)                
+    LT$post_varB2=rep(0,LT$p)
 
     fname=paste(saveAt,LT$Name,"_varB.dat",sep=""); 
     
-    if(rmExistingFiles)
-    { 
+    if(rmExistingFiles){ 
        unlink(fname) 
     }
 
     LT$NamefileOut=fname
     LT$fileOut=file(description=fname,open="w")
     LT$X=as.vector(LT$X)
-
+    
+    #*#
+    if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
+    if(LT$saveEffects){
+    	if(is.null(LT$thin)){ LT$thin=thin }
+    	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
+    	if(rmExistingFiles){ unlink(fname) }
+    	LT$fileEffects=file(fname,open='wb')
+    	nRow=floor((nIter-burnIn)/LT$thin)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    }#*#
     return(LT)
 }
 
@@ -299,7 +296,7 @@ setLT.BRR_windows=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbos
 ## de los Campos et al (2009). 
 #  This functions simply sets hyper-parameters for quantities involved in BL regression
 
-setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose)
+setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose,thin,nIter,burnIn)
 {
     #Check the inputs
     if(is.null(LT$minAbsBeta)) LT$minAbsBeta=1e-9
@@ -441,7 +438,18 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose)
     LT$fileOut=file(description=fname,open="w")
 
     LT$X=as.vector(LT$X)
-
+    
+    #*#
+    if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
+    if(LT$saveEffects){
+    	if(is.null(LT$thin)){ LT$thin=thin }
+    	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
+    	if(rmExistingFiles){ unlink(fname) }
+    	LT$fileEffects=file(fname,open='wb')
+    	nRow=floor((nIter-burnIn)/LT$thin)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    }#*#
+    
     return(LT)
 }
 
@@ -562,12 +570,8 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
 }
 
 ###Bayes B and C########################################################################################################################################                 
-#Pseudo BayesB with random scale and random proportion of markers "in" the model
-#See Variable selection for regression models, 
-#Lynn Kuo and Bani Mallic, 1998. 
-#Bayes C (Habier et al., 2011)
 
-setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups, nGroups,verbose)
+setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups, nGroups,verbose,thin,nIter,burnIn)
 {
 
   model=LT$model
@@ -712,6 +716,17 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups
      LT$post_S2=0
   }
   
+   #*#
+    if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
+    if(LT$saveEffects){
+    	if(is.null(LT$thin)){ LT$thin=thin }
+    	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
+    	if(rmExistingFiles){ unlink(fname) }
+    	LT$fileEffects=file(fname,open='wb')
+    	nRow=floor((nIter-burnIn)/LT$thin)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    }#*#
+  
   #return object
   return(LT) 
 }
@@ -720,7 +735,7 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups
 #Prediction of Total Genetic Value Using Genome-Wide Dense Marker Maps
 #Genetics 157: 1819-1829, Modified so that the Scale parameter is estimated from data (a gamma prior is assigned)
 
-setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
+setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose,thin,nIter,burnIn)
 {
 
   #Ckecking inputs 
@@ -801,6 +816,17 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
   LT$post_b2=rep(0,LT$p)
   LT$post_S=0
   LT$post_S2=0
+
+    #*#
+    if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
+    if(LT$saveEffects){
+    	if(is.null(LT$thin)){ LT$thin=thin }
+    	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
+    	if(rmExistingFiles){ unlink(fname) }
+    	LT$fileEffects=file(fname,open='wb')
+    	nRow=floor((nIter-burnIn)/LT$thin)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    }#*#
   
   #return object
   return(LT)
@@ -813,12 +839,12 @@ welcome=function()
   cat("\n");
   cat("#--------------------------------------------------------------------#\n");
   cat("#        _\\\\|//_                                                     #\n");
-  cat("#       (` o-o ')      BGLR v1.0.4 build 98                          #\n");
+  cat("#       (` o-o ')      BGLR v1.0.5                                   #\n");
   cat("#------ooO-(_)-Ooo---------------------------------------------------#\n");
   cat("#                      Bayesian Generalized Linear Regression        #\n");
   cat("#                      Gustavo de los Campos, gdeloscampos@gmail.com #\n");
-  cat("#    .oooO     Oooo.   Paulino Perez, perpdgo@gmail.com              #\n");
-  cat("#    (   )     (   )   April, 2015                                   #\n");
+  cat("#    .oooO     Oooo.   Paulino Perez-Rodriguez, perpdgo@gmail.com    #\n");
+  cat("#    (   )     (   )   Agust, 2016                                   #\n");
   cat("#_____\\ (_______) /_________________________________________________ #\n");
   cat("#      \\_)     (_/                                                   #\n");
   cat("#                                                                    #\n");
@@ -876,16 +902,16 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
 .onAttach = function(library, pkg)
 {
   Rv = R.Version()
-  if(!exists("getRversion", baseenv()) || (getRversion() < "3.1.3"))
-    stop("This package requires R 3.1.3 or later")
+  if(!exists("getRversion", baseenv()) || (getRversion() < "2.10"))
+    stop("This package requires R 2.10 or later")
   assign(".BGLR.home", file.path(library, pkg),
          pos=match("package:BGLR", search()))
-  BGLR.version = "1.0.4 (2015-04-07), build 98"
+  BGLR.version = "1.0.5"
   assign(".BGLR.version", BGLR.version, pos=match("package:BGLR", search()))
   if(interactive())
   {
     packageStartupMessage(paste("# Package Bayesian Generalized Regression (BGLR), ", BGLR.version, ". ",sep=""),appendLF=TRUE)
-    packageStartupMessage("# Gustavo de los Campos & Paulino Perez",appendLF=TRUE)
+    packageStartupMessage("# Gustavo de los Campos & Paulino Perez-Rodriguez",appendLF=TRUE)
     packageStartupMessage("# Support provided by the U.S., National Institutes of Health (NIH)", appendLF=TRUE)
     packageStartupMessage("# (Grant: R01GM101219, NIGMS)", appendLF=TRUE)
     packageStartupMessage("# and by the International Maize and Wheat Improvement Center (CIMMyT).",appendLF=TRUE)                        
@@ -914,7 +940,8 @@ rtrun=function (mu, sigma, a, b)
 
 #Extract the values of z such that y[i]=j
 #z,y vectors, j integer
-extract=function(z,y,j) subset(as.data.frame(z,y),subset=(y==j))
+#extract=function(z,y,j) subset(as.data.frame(z,y),subset=(y==j))
+extract=function(z,y,j) z[y==j]
 
 #This routine was adapted from rinvGauss function from S-Plus
 # Random variates from inverse Gaussian distribution
@@ -1039,7 +1066,11 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
 
         y=as.integer(y)
         z=y  
+
+	fname = paste(saveAt, "thresholds.dat", sep = "")
+        fileOutThresholds = file(description = fname, open = "w")
     }
+
     
     if (is.null(weights)) 
     {
@@ -1085,7 +1116,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
     fileOutMu = file(description = fname, open = "w")
 
     if (response_type == "ordinal") {
-        cat(" Prior for residual is not necessary, if you provided it, it will be ignored\n")
+        if(verbose){ cat(" Prior for residual is not necessary, if you provided it, it will be ignored\n")}
         if (any(weights != 1)) stop(" Weights are not supported \n")
        
         countsZ=table(z)
@@ -1167,7 +1198,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                ETA[[i]]$Name=paste("ETA_",names(ETA)[i],sep="")
 	    }
 
-            if (!(ETA[[i]]$model %in% c("FIXED", "BRR", "BL", "BayesA", "BayesB","BayesC", "RKHS","BRR_windows"))) 
+            if (!(ETA[[i]]$model %in% c("FIXED", "BRR", "BL", "BayesA", "BayesB","BayesC", "RKHS","BRR_sets"))) 
             {
                 stop(paste(" Error in ETA[[", i, "]]", " model ", ETA[[i]]$model, " not implemented (note: evaluation is case sensitive).", sep = ""))
                 
@@ -1181,13 +1212,13 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
 
             ETA[[i]] = switch(ETA[[i]]$model, 
 			      FIXED = setLT.Fixed(LT = ETA[[i]],  n = n, j = i, weights = weights, y = y, nLT = nLT, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups), 
-                              BRR = setLT.BRR(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose), 
-                              BL = setLT.BL(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose), 
+                              BRR = setLT.BRR(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn),#*# 
+                              BL = setLT.BL(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn), 
                               RKHS = setLT.RKHS(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose), 
-                              BayesC = setLT.BayesBandC(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose),
-                              BayesA = setLT.BayesA(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose),
-                              BayesB = setLT.BayesBandC(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose),
-                              BRR_windows = setLT.BRR_windows(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose)
+                              BayesC = setLT.BayesBandC(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn),
+                              BayesA = setLT.BayesA(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn),
+                              BayesB = setLT.BayesBandC(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn),
+                              BRR_sets = setLT.BRR_sets(LT = ETA[[i]], n = n, j = i, weights = weights, y = y, nLT = nLT, R2 = R2, saveAt = saveAt, rmExistingFiles = rmExistingFiles,verbose=verbose,thin=thin,nIter=nIter,burnIn=burnIn)
                               )
         }
     }
@@ -1261,21 +1292,16 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                   ETA[[j]]$varB = SS/rchisq(df = DF, n = 1)
                 }# END BRR
                 
-                if(ETA[[j]]$model=="BRR_windows"){
+                if(ETA[[j]]$model=="BRR_sets"){
                    ans = .Call("sample_beta", n, ETA[[j]]$p, ETA[[j]]$X, ETA[[j]]$x2, ETA[[j]]$b,
                                              e, ETA[[j]]$varB, varE, 1e-9)
-		   ETA[[j]]$b = ans[[1]]
+		  		   ETA[[j]]$b = ans[[1]]
                    e = ans[[2]]
-
-                   tmp=numeric()
-                   for(nw in 1:ETA[[j]]$nwindows)
-                   {
-                        index=ETA[[j]]$windows_list[[nw]]
-			DF = ETA[[j]]$df0 + length(index)
-                  	SS = sum((ETA[[j]]$b[index])^2) + ETA[[j]]$S0
-                        tmp=c(tmp,rep(SS/rchisq(df = DF, n = 1),length(index)))
-                   }
-                   ETA[[j]]$varB=tmp
+				   SS=tapply(X=ETA[[j]]$b^2,INDEX=ETA[[j]]$sets,FUN=sum)+ETA[[j]]$S0
+				   
+                   tmp=SS/rchisq(df=ETA[[j]]$DF1,n=ETA[[j]]$n_sets)
+              
+                   ETA[[j]]$varB=tmp[ETA[[j]]$sets]
                 }
 
 
@@ -1545,12 +1571,17 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
             #Output files
             write(x = mu, file = fileOutMu, append = TRUE)
             write(x = varE, ncolumns=nGroups,file = fileOutVarE, append = TRUE)
+
+	    if (response_type == "ordinal") {
+		  write(x=threshold[2:nclass],ncolumns=nclass-1,file=fileOutThresholds,append=TRUE)
+	    }
+
+
             if (i > burnIn) {
                 nSums = nSums + 1
                 k = (nSums - 1)/(nSums)
                 if (nLT > 0) {
                   for (j in 1:nLT) {
-
                     if (ETA[[j]]$model == "FIXED") {
                       ETA[[j]]$post_b = ETA[[j]]$post_b * k + ETA[[j]]$b/nSums
                       ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
@@ -1561,13 +1592,25 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
                       ETA[[j]]$post_varB = ETA[[j]]$post_varB * k + (ETA[[j]]$varB)/nSums
                       ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
                     }
 
+                    if (ETA[[j]]$model == "BRR_sets") {
+                      ETA[[j]]$post_b = ETA[[j]]$post_b * k + ETA[[j]]$b/nSums
+                      ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
+                      ETA[[j]]$post_varB = ETA[[j]]$post_varB * k + (ETA[[j]]$varB)/nSums
+                      ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
+                      ETA[[j]]$post_varSets<-ETA[[j]]$post_varSets*k+tmp/nSums
+                      ETA[[j]]$post_varSets2<-ETA[[j]]$post_varSets2*k+(tmp^2)/nSums
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
+                    }
+                    
                     if (ETA[[j]]$model == "BL") {
                       ETA[[j]]$post_b = ETA[[j]]$post_b * k + ETA[[j]]$b/nSums
                       ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
                       ETA[[j]]$post_tau2 = ETA[[j]]$post_tau2 * k + (ETA[[j]]$tau2)/nSums
                       ETA[[j]]$post_lambda = ETA[[j]]$post_lambda * k + (ETA[[j]]$lambda)/nSums
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
                     }
 
                     if (ETA[[j]]$model == "RKHS") {
@@ -1586,6 +1629,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_d = ETA[[j]]$post_d * k + (ETA[[j]]$d)/nSums
                       ETA[[j]]$post_probIn = ETA[[j]]$post_probIn * k + (ETA[[j]]$probIn)/nSums
                       ETA[[j]]$post_probIn2 = ETA[[j]]$post_probIn2 * k + (ETA[[j]]$probIn^2)/nSums
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects)}#*#
                     }
 
                     if (ETA[[j]]$model == "BayesA") {
@@ -1594,7 +1638,8 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_varB = ETA[[j]]$post_varB * k + (ETA[[j]]$varB)/nSums
                       ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
                       ETA[[j]]$post_S = ETA[[j]]$post_S * k + (ETA[[j]]$S)/nSums
-		      ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
+		      		  ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
+		      		  if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
                     }
 
                     if(ETA[[j]]$model=="BayesB")
@@ -1607,7 +1652,8 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                         ETA[[j]]$post_probIn = ETA[[j]]$post_probIn * k + (ETA[[j]]$probIn)/nSums
                         ETA[[j]]$post_probIn2 = ETA[[j]]$post_probIn2 * k + (ETA[[j]]$probIn^2)/nSums
                         ETA[[j]]$post_S = ETA[[j]]$post_S * k + (ETA[[j]]$S)/nSums
-			ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
+						ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
+						if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects)}#*#
                     }
                   }
                 }
@@ -1649,8 +1695,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                 if(response_type == "gaussian") {
                   
                   tmpE = e/weights
-                  if(!is.null(groups))
-		  {
+                  if(!is.null(groups)){
                     tmpSD=rep(NA,n)
                     for(g in 1:nGroups)
                     {
@@ -1659,7 +1704,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                     }
                   }else{
                     tmpSD = sqrt(varE)/weights
-		  }
+		  		  }
 
                   if (nNa > 0) {
                     tmpE = tmpE[-whichNa]
@@ -1686,19 +1731,27 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
     #Closing files
     close(fileOutVarE)
     close(fileOutMu)
+    if(response_type == "ordinal") close(fileOutThresholds)
 
     if (nLT > 0) {
         for (i in 1:nLT) {
             if (!is.null(ETA[[i]]$fileOut)) {
+                flush(ETA[[i]]$fileOut)                
                 close(ETA[[i]]$fileOut)
+                ETA[[i]]$fileOut = NULL
             }
-            ETA[[i]]$fileOut = NULL
+            if(!is.null(ETA[[i]]$fileEffects)){
+            		flush(ETA[[i]]$fileEffects)
+            		close(ETA[[i]]$fileEffects)
+            		ETA[[i]]$fileEffects = NULL
+            }
+            
         }
     }
     
     #return goodies
 
-    out = list(y = y0, whichNa = whichNa, saveAt = saveAt, nIter = nIter, 
+    out = list(y = y0, a=a,b=b,whichNa = whichNa, saveAt = saveAt, nIter = nIter, 
                burnIn = burnIn, thin = thin, 
                weights = weights, verbose = verbose, 
                response_type = response_type, df0 = df0, S0 = S0)
@@ -1748,14 +1801,20 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
 
     if(response_type=="ordinal")
     {
-         out$fit$logLikAtPostMean = loglik_ordinal(y,post_yHat,post_threshold)
          out$probs=post_prob
          out$SD.probs=sqrt(post_prob2-post_prob^2)
          colnames(out$probs)=lev
          colnames(out$SD.probs)=lev
          out$threshold = post_threshold[-c(1, nclass + 1)]
          out$SD.threshold = sqrt(post_threshold2 - post_threshold^2)[-c(1, nclass + 1)] 
-
+         
+         #out$fit$logLikAtPostMean = loglik_ordinal(y,post_yHat,post_threshold)#*#
+        tmp=0
+         for(i in 1:nclass){
+            tmp=tmp+sum(ifelse(y0==lev[i],log(out$probs[,i]),0))
+         }
+         
+         out$fit$logLikAtPostMean=tmp
          out$levels=lev
          out$nlevels=nclass
     }
@@ -1788,18 +1847,24 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                ETA[[i]]=ETA[[i]][-tmp]
             }
 
-            if (ETA[[i]]$model %in% c("BRR", "BayesA", "BayesC","BayesB")) {
+            if (ETA[[i]]$model %in% c("BRR","BRR_sets", "BayesA", "BayesC","BayesB")) {
                 ETA[[i]]$varB = ETA[[i]]$post_varB
                 ETA[[i]]$SD.varB = sqrt(ETA[[i]]$post_varB2 - (ETA[[i]]$post_varB^2))
                 tmp = which(names(ETA[[i]]) %in% c("post_varB", "post_varB2"))
                 ETA[[i]] = ETA[[i]][-tmp]
             }
+           	if(ETA[[i]]$model=="BRR_sets"){
+				ETA[[i]]$varSets=ETA[[i]]$post_varSets
+				ETA[[i]]$SD.varSets=sqrt(ETA[[i]]$post_varSets2-(ETA[[i]]$post_varSets^2))
+				tmp<-which(names(ETA[[i]])%in%c("post_varSets","post_varSets2"))
+				ETA[[i]]=ETA[[i]][-tmp]
+			}
 
             if(ETA[[i]]$model %in% c("BayesB","BayesC"))
             {
-	        ETA[[i]]$d=ETA[[i]]$post_d
+	        	ETA[[i]]$d=ETA[[i]]$post_d
                 ETA[[i]]$probIn=ETA[[i]]$post_probIn
-		ETA[[i]]$SD.probIn=sqrt(ETA[[i]]$post_probIn2 - (ETA[[i]]$post_probIn^2))
+				ETA[[i]]$SD.probIn=sqrt(ETA[[i]]$post_probIn2 - (ETA[[i]]$post_probIn^2))
                 tmp = which(names(ETA[[i]]) %in% c("post_d", "post_probIn","post_probIn2"))
                 ETA[[i]] = ETA[[i]][-tmp]
             }
@@ -1825,8 +1890,6 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
     class(out) = "BGLR"
     return(out)
 }
-
- #fm<-BGLR(y=y,ETA=list(list(X=X,model='FIXED')))
 
 #This function will be a wrapper for BGLR
 #the idea is to maintain the compatibility with the function BLR in 
@@ -1937,3 +2000,6 @@ BLR=function (y, XF = NULL, XR = NULL, XL = NULL, GF = list(ID = NULL,
     class(out) = "BLR"
     return(out)
 }
+
+
+ 
