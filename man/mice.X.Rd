@@ -7,8 +7,5 @@
 
 }
 
-\source{
-  \url{http://gscan.well.ox.ac.uk}
-}
 
 \keyword{datasets}

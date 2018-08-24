@@ -1,22 +1,17 @@
 Package: BGLR
-Version: 1.0.5.1
-Date: 2016-08-19
+Version: 1.0.7
+Date: 2018-08-23
 Title: Bayesian Generalized Linear Regression
 Author: Gustavo de los Campos, Paulino Perez Rodriguez,
-Maintainer: ORPHANED
+Maintainer: Paulino Perez Rodriguez <perpdgo@colpos.mx>
 Depends: R (>= 2.10)
 Description: Bayesian Generalized Linear Regression.
 LazyLoad: true
 License: GPL-3
-Packaged: 2018-08-21 11:31:18 UTC; ripley
+Packaged: 2018-08-23 22:45:46 UTC; pperez
 Repository: CRAN
 Repository/R-Forge/Project: bglr
 Repository/R-Forge/Revision: 78
 Repository/R-Forge/DateTimeStamp: 2013-10-22 13:52:58
-Date/Publication: 2018-08-21 11:33:26 UTC
+Date/Publication: 2018-08-24 10:08:28 UTC
 NeedsCompilation: yes
-X-CRAN-Original-Maintainer: Paulino Perez Rodriguez <perpdgo@colpos.mx>
-X-CRAN-Comment: Orphaned on 2018-08-21 as check problems were not
-        corrected despite reminder.
- .
- Misuse of OPENMP macros.
