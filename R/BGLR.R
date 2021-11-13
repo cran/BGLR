@@ -12,7 +12,7 @@ set.X=function(LT)
 	while(i<=n_elements & flag)
 	{
 	   i=i+1;
-	   if(class(LT[[i]])=="formula")
+	   if(is(LT[[i]],"formula"))
 	   {
 	   		flag=FALSE
 			rhs=LT[[i]]
@@ -203,12 +203,16 @@ setLT.BRR=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,groups,nGroups
     #*#
     if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
     if(LT$saveEffects){
+        if(is.null(LT$storageMode)){LT$storageMode="double"}
+        if(!LT$storageMode%in%c("single","double")) {
+            stop("storageMode of LP ",j," can either be 'single' or 'double' (default)")
+        }
     	if(is.null(LT$thin)){ LT$thin=thin }
     	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
     	if(rmExistingFiles){ unlink(fname) }
     	LT$fileEffects=file(fname,open='wb')
     	nRow=floor((nIter-burnIn)/LT$thin)
-    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects,size=ifelse(LT$storageMode=="single",4,8))
     }#*#
 
     return(LT)
@@ -297,12 +301,16 @@ setLT.BRR_sets=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose,t
 
     if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
     if(LT$saveEffects){
+        if(is.null(LT$storageMode)){LT$storageMode="double"}
+        if(!LT$storageMode%in%c("single","double")) {
+            stop("storageMode of LP ",j," can either be 'single' or 'double' (default)")
+        }
     	if(is.null(LT$thin)){ LT$thin=thin }
     	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
     	if(rmExistingFiles){ unlink(fname) }
     	LT$fileEffects=file(fname,open='wb')
     	nRow=floor((nIter-burnIn)/LT$thin)
-    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects,size=ifelse(LT$storageMode=="single",4,8))
     }
     return(LT)
 }
@@ -458,12 +466,16 @@ setLT.BL=function(LT,y,n,j,weights,nLT,R2,saveAt,rmExistingFiles,verbose,thin,nI
     #*#
     if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
     if(LT$saveEffects){
+        if(is.null(LT$storageMode)){LT$storageMode="double"}
+        if(!LT$storageMode%in%c("single","double")) {
+            stop("storageMode of LP ",j," can either be 'single' or 'double' (default)")
+        }
     	if(is.null(LT$thin)){ LT$thin=thin }
     	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
     	if(rmExistingFiles){ unlink(fname) }
     	LT$fileEffects=file(fname,open='wb')
     	nRow=floor((nIter-burnIn)/LT$thin)
-    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects,size=ifelse(LT$storageMode=="single",4,8))
     }#*#
     
     return(LT)
@@ -483,34 +495,41 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
     {
         if(is.null(LT$K)) stop("Kernel for linear term ",j, " was not provided, specify it with list(K=?,model='RKHS'), where ? is the kernel matrix")
 
-	LT$K = as.matrix(LT$K)
-
-        if(class(LT$K)!="matrix") stop("Kernel for linear term ",j, " should be a matrix, the kernel provided is of class ", class(LT$K))
+		if(!is.matrix(LT$K)) stop("Kernel for linear term ",j, " should be a matrix, the kernel provided is of class ", class(LT$K))
+		
+		LT$K = as.matrix(LT$K)
 
         if(nrow(LT$K)!=ncol(LT$K)) stop("Kernel for linear term ",j, " is not a square matrix")
 
-	#This code was rewritten to speed up computations
-        #T = diag(weights)   
-        #LT$K = T %*% LT$K %*% T 
+		#This code was rewritten to speed up computations
+    	#T = diag(weights)   
+    	#LT$K = T %*% LT$K %*% T 
         
-        #Weight kernels
-	for(i in 1:nrow(LT$K))
-        {
-		#j can not be used as subindex because its value is overwritten
-		for(m in i:ncol(LT$K))
-                {    
-				LT$K[i,m]=LT$K[i,m]*weights[i]*weights[m];
-                                LT$K[m,i]=LT$K[i,m]
-		}
-	}
-        tmp =eigen(LT$K)
-        LT$V =tmp$vectors
-        LT$d =tmp$values
-	rm(tmp)
+    	#Weight kernels
+		#for(i in 1:nrow(LT$K))
+    	#{
+		#	#j can not be used as subindex because its value is overwritten
+		#	for(m in i:ncol(LT$K))
+    	#    {    
+		#			LT$K[i,m]=LT$K[i,m]*weights[i]*weights[m];
+    	#            LT$K[m,i]=LT$K[i,m]
+		#	}
+		#}
+		
+		#Added January 10/2020
+		#This is faster than the for loop
+		
+		LT$K=sweep(sweep(LT$K,1L,weights,"*"),2L,weights,"*")
+    
+    	tmp =eigen(LT$K)
+    	LT$V =tmp$vectors
+    	LT$d =tmp$values
+		rm(tmp)
+	
     }else{
-	if(any(weights!=1))
+		if(any(weights!=1))
         { 
-		warning("Eigen decomposition for LT",j," was provided and the model involves weights. Note: You should have weighted the kernel before computing eigen(K)") 
+			warning("Eigen decomposition for LT",j," was provided and the model involves weights. Note: You should have weighted the kernel before computing eigen(K)") 
         }
     }
     
@@ -550,7 +569,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
     {
           if(LT$df0<=0) stop("df0>0 in RKHS in order to set S0");
 
-	  LT$S0=((var(y,na.rm=TRUE)*LT$R2)/(mean(LT$d)))*(LT$df0+2)
+	  	  LT$S0=((var(y,na.rm=TRUE)*LT$R2)/(mean(LT$d)))*(LT$df0+2)
 
 	  if(verbose)
 	  {
@@ -732,15 +751,19 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups
      LT$post_S2=0
   }
   
-   #*#
+    #*#
     if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
     if(LT$saveEffects){
+        if(is.null(LT$storageMode)){LT$storageMode="double"}
+        if(!LT$storageMode%in%c("single","double")) {
+            stop("storageMode of LP ",j," can either be 'single' or 'double' (default)")
+        }
     	if(is.null(LT$thin)){ LT$thin=thin }
     	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
     	if(rmExistingFiles){ unlink(fname) }
     	LT$fileEffects=file(fname,open='wb')
     	nRow=floor((nIter-burnIn)/LT$thin)
-    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects,size=ifelse(LT$storageMode=="single",4,8))
     }#*#
   
   #return object
@@ -836,12 +859,16 @@ setLT.BayesA=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose,thi
     #*#
     if(is.null(LT$saveEffects)){LT$saveEffects=FALSE}
     if(LT$saveEffects){
+        if(is.null(LT$storageMode)){LT$storageMode="double"}
+        if(!LT$storageMode%in%c("single","double")) {
+            stop("storageMode of LP ",j," can either be 'single' or 'double' (default)")
+        }
     	if(is.null(LT$thin)){ LT$thin=thin }
     	fname=paste(saveAt,LT$Name,"_b.bin",sep="")
     	if(rmExistingFiles){ unlink(fname) }
     	LT$fileEffects=file(fname,open='wb')
     	nRow=floor((nIter-burnIn)/LT$thin)
-    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects)
+    	writeBin(object=c(nRow,LT$p),con=LT$fileEffects,size=ifelse(LT$storageMode=="single",4,8))
     }#*#
   
   #return object
@@ -855,12 +882,12 @@ welcome=function()
   message("\n");
   message("#--------------------------------------------------------------------#");
   message("#        _\\\\|//_                                                     #");
-  message("#       (` o-o ')      BGLR v1.0.8                                   #");
+  message("#       (` o-o ')      BGLR v1.0.9                                   #");
   message("#------ooO-(_)-Ooo---------------------------------------------------#");
   message("#                      Bayesian Generalized Linear Regression        #");
   message("#                      Gustavo de los Campos, gdeloscampos@gmail.com #");
   message("#    .oooO     Oooo.   Paulino Perez-Rodriguez, perpdgo@gmail.com    #");
-  message("#    (   )     (   )   November, 2018                                #");
+  message("#    (   )     (   )   November, 2021                                #");
   message("#_____\\ (_______) /_________________________________________________ #");
   message("#      \\_)     (_/                                                   #");
   message("#                                                                    #");
@@ -917,13 +944,6 @@ metropLambda=function (tau2, lambda, shape1 = 1.2, shape2 = 1.2, max = 200, ncp 
 #this function is executed once the library is loaded
 .onAttach = function(library, pkg)
 {
-  Rv = R.Version()
-  if(!exists("getRversion", baseenv()) || (getRversion() < "3.5.0"))
-    stop("This package requires R 3.5.0 or later")
-  assign(".BGLR.home", file.path(library, pkg),
-         pos=match("package:BGLR", search()))
-  BGLR.version = "1.0.8"
-  assign(".BGLR.version", BGLR.version, pos=match("package:BGLR", search()))
   if(interactive())
   {
     packageStartupMessage("# Gustavo de los Campos & Paulino Perez-Rodriguez")
@@ -1090,7 +1110,7 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
         y=as.integer(y)
         z=y  
 
-	fname = paste(saveAt, "thresholds.dat", sep = "")
+		fname = paste(saveAt, "thresholds.dat", sep = "")
         fileOutThresholds = file(description = fname, open = "w")
     }
 
@@ -1232,7 +1252,6 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
             {
 		if(!(ETA[[i]]$model %in%  c("BRR","FIXED","BayesB","BayesC"))) stop("Error in ETA[[", i, "]]", " model ", ETA[[i]]$model, " not implemented for groups")
             }
-
 
             ETA[[i]] = switch(ETA[[i]]$model, 
 			      FIXED = setLT.Fixed(LT = ETA[[i]],  n = n, j = i, weights = weights, y = y, nLT = nLT, saveAt = saveAt, rmExistingFiles = rmExistingFiles,groups=groups,nGroups=nGroups), 
@@ -1623,7 +1642,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
                       ETA[[j]]$post_varB = ETA[[j]]$post_varB * k + (ETA[[j]]$varB)/nSums
                       ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
-                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                          writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                      }#*#
                     }
 
                     if (ETA[[j]]$model == "BRR_sets") {
@@ -1633,7 +1654,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
                       ETA[[j]]$post_varSets<-ETA[[j]]$post_varSets*k+ETA[[j]]$varSets/nSums
                       ETA[[j]]$post_varSets2<-ETA[[j]]$post_varSets2*k+(ETA[[j]]$varSets^2)/nSums
-                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                          writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                      }#*#
                     }
                     
                     if (ETA[[j]]$model == "BL") {
@@ -1641,7 +1664,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
                       ETA[[j]]$post_tau2 = ETA[[j]]$post_tau2 * k + (ETA[[j]]$tau2)/nSums
                       ETA[[j]]$post_lambda = ETA[[j]]$post_lambda * k + (ETA[[j]]$lambda)/nSums
-                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                          writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                      }#*#
                     }
 
                     if (ETA[[j]]$model == "RKHS") {
@@ -1660,7 +1685,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_d = ETA[[j]]$post_d * k + (ETA[[j]]$d)/nSums
                       ETA[[j]]$post_probIn = ETA[[j]]$post_probIn * k + (ETA[[j]]$probIn)/nSums
                       ETA[[j]]$post_probIn2 = ETA[[j]]$post_probIn2 * k + (ETA[[j]]$probIn^2)/nSums
-                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects)}#*#
+                      if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                          writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                      }#*#
                     }
 
                     if (ETA[[j]]$model == "BayesA") {
@@ -1670,7 +1697,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                       ETA[[j]]$post_varB2 = ETA[[j]]$post_varB2 * k + (ETA[[j]]$varB^2)/nSums
                       ETA[[j]]$post_S = ETA[[j]]$post_S * k + (ETA[[j]]$S)/nSums
 		      		  ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
-		      		  if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects)}#*#
+		      		  if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                          writeBin(object=ETA[[j]]$b,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                      }#*#
                     }
 
                     if(ETA[[j]]$model=="BayesB")
@@ -1684,7 +1713,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                         ETA[[j]]$post_probIn2 = ETA[[j]]$post_probIn2 * k + (ETA[[j]]$probIn^2)/nSums
                         ETA[[j]]$post_S = ETA[[j]]$post_S * k + (ETA[[j]]$S)/nSums
 						ETA[[j]]$post_S2 = ETA[[j]]$post_S2 * k + (ETA[[j]]$S^2)/nSums
-						if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){  writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects)}#*#
+						if(ETA[[j]]$saveEffects&&(i%%ETA[[j]]$thin)==0){
+                            writeBin(object=ETA[[j]]$b*ETA[[j]]$d,con=ETA[[j]]$fileEffects,size=ifelse(ETA[[j]]$storageMode=="single",4,8))
+                        }#*#
                     }
                   }
                 }
@@ -1772,9 +1803,12 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
                 ETA[[i]]$fileOut = NULL
             }
             if(!is.null(ETA[[i]]$fileEffects)){
-            		flush(ETA[[i]]$fileEffects)
-            		close(ETA[[i]]$fileEffects)
-            		ETA[[i]]$fileEffects = NULL
+                flush(ETA[[i]]$fileEffects)
+                close(ETA[[i]]$fileEffects)
+                if(!is.null(ETA[[i]]$compressEffects)&&ETA[[i]]$compressEffects==TRUE){
+                    compressFile(paste0(saveAt,ETA[[i]]$Name,"_b.bin"))
+                }
+                ETA[[i]]$fileEffects = NULL
             }
             
         }
