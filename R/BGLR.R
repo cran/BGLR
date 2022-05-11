@@ -521,7 +521,7 @@ setLT.RKHS=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles,verbose)
 		
 		LT$K=sweep(sweep(LT$K,1L,weights,"*"),2L,weights,"*")
     
-    	tmp =eigen(LT$K)
+    	tmp =eigen(LT$K,symmetric=TRUE)
     	LT$V =tmp$vectors
     	LT$d =tmp$values
 		rm(tmp)
@@ -882,12 +882,12 @@ welcome=function()
   message("\n");
   message("#--------------------------------------------------------------------#");
   message("#        _\\\\|//_                                                     #");
-  message("#       (` o-o ')      BGLR v1.0.9                                   #");
+  message("#       (` o-o ')      BGLR v1.1.0                                   #");
   message("#------ooO-(_)-Ooo---------------------------------------------------#");
   message("#                      Bayesian Generalized Linear Regression        #");
   message("#                      Gustavo de los Campos, gdeloscampos@gmail.com #");
   message("#    .oooO     Oooo.   Paulino Perez-Rodriguez, perpdgo@gmail.com    #");
-  message("#    (   )     (   )   November, 2021                                #");
+  message("#    (   )     (   )   April, 2022                                   #");
   message("#_____\\ (_______) /_________________________________________________ #");
   message("#      \\_)     (_/                                                   #");
   message("#                                                                    #");
@@ -1785,7 +1785,9 @@ BGLR=function (y, response_type = "gaussian", a = NULL, b = NULL,
             message("---------------------------------------")
             tmp = proc.time()[3]
             message("Iter=",i," Time/Iter=",round(tmp-time,3))
-            message("VarE=",round(varE,3))
+            #message("VarE=",round(varE,3))
+	    #In the case of variance by groups
+	    message("varE=",paste(round(varE,3),collapse=", "))
             time = tmp
         }
     }#end of Gibbs sampler

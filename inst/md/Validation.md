@@ -31,11 +31,11 @@
   X.TRN=X[-tst,] ; X.TST=X[tst,]
   
   fm=BGLR(y=yTRN,ETA=list(list(X=X.TRN,model='BRR')),nIter=6000,burnIn=1000)
-  yHat_2=X.TST%*%fm$ETA[[1]]$b
+  yHat_2=fm$mu+as.vector(X.TST%*%fm$ETA[[1]]$b)
 
 ```
 
-**(3) Using G-matrix (only valid for GBLUP**
+**(3) Using G-matrix (only valid for GBLUP)**
 
 ```R
   G=tcrossprod(X)/ncol(X)
@@ -44,7 +44,7 @@
   G21=G[tst,-tst]
   
   fm=BGLR(y=yTRN,ETA=list(list(K=G11,model='RKHS')),nIter=6000,burnIn=1000)
-  yHat_3=G21%*%solve(G11)%*%fm$ETA[[1]]$u
+  yHat_3=fm$mu+as.vector(G21%*%solve(G11)%*%fm$ETA[[1]]$u)
   cor(cbind(yHat_1,yHat_2,yHat_3))
 
 ```
