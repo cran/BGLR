@@ -1,8 +1,8 @@
-05575e62ca57f416395289d43005b001 *CHANGELOG
+04e759aa4fc2363f834a80ab2506ae0e *CHANGELOG
 d32239bcb673463ab874e80d47fae504 *COPYING
-55c4556ca2f655a25523f9a7651ed1f0 *DESCRIPTION
+038c786e36f22fa226581f818db6a512 *DESCRIPTION
 0473f47078d759a8f631f88427de6451 *NAMESPACE
-ea87cc132f7184a831fda7fd79846d8a *R/BGLR.R
+bd2b959a0d132aeac0a81332afca822c *R/BGLR.R
 19f50a7d6c7582e79454997289ba95f6 *R/BLRCross.R
 902e0643b38d1bfe9a935a0b180f7b73 *R/Multitrait.R
 ac1c68e46a3311b57c7cb37c44f3cebe *R/methods.R
@@ -26,7 +26,7 @@ fb48c8a2f8cb5cd03e2696daaac24ca8 *demo/BL.R
 3d99b5ad05fa18a270de1f3dcea37720 *demo/read_bed.R
 496d268b01354126cb4a8ac7fa190cbb *demo/read_ped.R
 7a807e731ebb7dd9cbfb319a891aee7b *demo/write_bed.R
-b8e85118f9e97065b72db282b4dec4b7 *inst/CITATION
+b19041d6c2ca01b7643fa0818b83f9e1 *inst/CITATION
 560bee9beaee08972335925634b4a726 *inst/doc/BGLR-extdoc.pdf
 e0afd876c83056ea3294f7903c20b7e5 *inst/extdata/sample.bed
 71d452624e9dbea681f7350391e643a9 *inst/extdata/sample.bim
@@ -101,7 +101,7 @@ d819f9fca6e4b0ce9f587fd5b09e7c7d *man/xpnd.Rd
 b8c9cd8a23cd98a4bfd853566e23ef07 *src/Makevars
 5fad3621b8994d3afab4b49a50cae10f *src/Makevars.win
 a0608061f769e4fecf9290ae22f16081 *src/init.c
-2b160e2931b72b9fc680dc1a3f8f9dd9 *src/sampler_multitrait.c
+537313543744a2e15e6f236f05e85a77 *src/sampler_multitrait.c
 2ec78447136dc7fc60e4f31b292cfd21 *src/util_plink.c
 467bb756b95ee4d21c648ef1312d3cab *src/util_sample.c
 b5b8a206b2597578ceb0df0e0169b4c7 *src/util_sample_cross.c
