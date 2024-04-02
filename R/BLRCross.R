@@ -2,7 +2,7 @@
 #Prediction of Total Genetic Value Using Genome-Wide Dense Marker Maps
 #Genetics 157: 1819-1829, Modified so that the Scale parameter is estimated from data (a gamma prior is assigned)
 
-setLT.BayesA.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
+setLT.BayesA.Cross=function(prior,vy,j,p,idColumns,sumVarX,R2,nLT,verbose,
                       saveAt,rmExistingFiles,thin,nIter,burnIn)
 {	
 	#Just a copy of values provided by user
@@ -45,7 +45,7 @@ setLT.BayesA.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
   	if(is.null(LT$S0))
   	{
   		if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S0");
-     	LT$S0=var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)
+     	LT$S0=vy*LT$R2/(LT$MSx)*(LT$df0+2)
      	if(verbose)
      	{
      		message("Scale parameter in LP ",j," was missing and was set to ",LT$S0)
@@ -111,7 +111,7 @@ setLT.BayesA.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
 #Set linear term for BayesB
 ##########################################################################################
 
-setLT.BayesB.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
+setLT.BayesB.Cross=function(prior,vy,j,p,idColumns,sumVarX,R2,nLT,verbose,
 					  saveAt,rmExistingFiles,thin,nIter,burnIn)
 {	
 	#Just a copy of values provided by user
@@ -173,9 +173,17 @@ setLT.BayesB.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
   	LT$countsIn=LT$counts * LT$probIn
   	LT$countsOut=LT$counts - LT$countsIn
   	
-  	#Set the initial value for S
-    if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S")
-    LT$S=var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
+  	#Default value for the scale parameter associated with the distribution assigned to the variance of 
+    #marker effects
+    if(is.null(LT$S0))
+    {
+    	if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S0")
+    	LT$S0=vy*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
+    	if(verbose)
+    	{
+    		message("Scale parameter in LP ",j," was missing and was set to ",LT$S0)
+    	}
+    }
     
     if(is.null(LT$shape0))
     {
@@ -185,16 +193,18 @@ setLT.BayesB.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
     
     if(is.null(LT$rate0))
     {
-    	LT$rate0=(LT$shape0-1)/LT$S
+    	LT$rate0=(LT$shape0-1)/LT$S0
     	message("rate0 in LP ",j," was missing and was set to ",LT$rate0)
     	
     }
+    
+    LT$S=LT$S0
   	
   	LT$a=rep(0, LT$p)	
   	LT$d=rbinom(n = LT$p, size = 1, prob = LT$probIn)
   	LT$b=LT$a*LT$d  #b=a*d, for compatibility with BGLR we use b instead of beta in linear terms
   	
-  	LT$varB = rep(LT$S/(LT$df0+2),LT$p)
+  	LT$varB = rep(LT$S0/(LT$df0+2),LT$p)
   	
   	fname=paste(saveAt,LT$Name,"_parBayesB.dat",sep="")
   	
@@ -245,7 +255,7 @@ setLT.BayesB.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
 #Set linear term for BayesC
 ##########################################################################################
 
-setLT.BayesC.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
+setLT.BayesC.Cross=function(prior,vy,j,p,idColumns,sumVarX,R2,nLT,verbose,
                       saveAt,rmExistingFiles,thin,nIter,burnIn)
 {	
 	#Just a copy of values provided by user
@@ -311,7 +321,7 @@ setLT.BayesC.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
   	if(is.null(LT$S0))
   	{
   		if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S0");
-     	LT$S0=var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
+     	LT$S0=vy*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
      	if(verbose)
      	{
      		message("Scale parameter in LP ",j," was missing and was set to ",LT$S0)
@@ -407,7 +417,7 @@ metropc=function(c,varB,b,d,shape1,shape2)
 
 
 
-setLT.SSVS.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
+setLT.SSVS.Cross=function(prior,vy,j,p,idColumns,sumVarX,R2,nLT,verbose,
                     saveAt,rmExistingFiles,thin,nIter,burnIn)
 {	
 	#Just a copy of values provided by user
@@ -502,7 +512,7 @@ setLT.SSVS.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
   	if(is.null(LT$S0))
   	{
   		if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S0");
-     	LT$S0=var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
+     	LT$S0=vy*LT$R2/(LT$MSx)*(LT$df0+2)/LT$probIn
      	if(verbose)
      	{
      		message("Scale parameter in LP ",j," was missing and was set to ",LT$S0)
@@ -563,7 +573,7 @@ setLT.SSVS.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
 #Set linear term for Bayesian Ridge Regression
 ##########################################################################################
 
-setLT.BRR.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
+setLT.BRR.Cross=function(prior,vy,j,p,idColumns,sumVarX,R2,nLT,verbose,
                    saveAt,rmExistingFiles,thin,nIter,burnIn)
 {	
 	#Just a copy of values provided by user
@@ -604,7 +614,7 @@ setLT.BRR.Cross=function(prior,y,j,p,idColumns,sumVarX,R2,nLT,verbose,
   	if(is.null(LT$S0))
   	{
   		if(LT$df0<=0) stop("df0>0 in ",LT$model," in order to set S0");
-     	LT$S0=var(y, na.rm = TRUE)*LT$R2/(LT$MSx)*(LT$df0+2)
+     	LT$S0=vy*LT$R2/(LT$MSx)*(LT$df0+2)
      	if(verbose)
      	{
      		message("Scale parameter in LP ",j," was missing and was set to ",LT$S0)
@@ -691,8 +701,59 @@ setLT.Fixed.Cross=function(p,idColumns,Name,saveAt,rmExistingFiles)
   	return(LT)
 }
 
+#RKHS
+setLT.RKHS.Cross=function(LT,j)
+{
+	if(is.null(LT$EVD) & is.null(LT$K))
+	{
+		text<-"Either variance co-variance matrix K or its eigen-value decomposition\n"
+		text<-paste(text,"must be provided for linear term ",j,"\n")
+		text<-paste(text,"To specify the variance covariance matrix K use:\n")
+		text<-paste(text,"list(K=?,model='RKHS'), where ? is the user defined (between subjects) co-variance matrix\n")
+		text<-paste(text,"To specify the eigen-value decomposition for K use:\n")
+		text<-paste(text,"list(EVD=?,model='RKHS'), where ? is the output from eigen function for a user defined (between subjects) co-variance matrix\n")
+		stop(text)
+	}
+	
+	if((!is.null(LT$K)) & (!is.null(LT$EVD)))
+	{
+		message("Variance covariance matrix K and its eigen-value decomposition for linear term ",j, " was provided")
+		message("ONLY EVD will be used")
+		LT$K<-NULL
+	}
+	
+	if((!is.null(LT$K)) & is.null(LT$EVD))
+	{
+		message("Checking variance co-variance matrix K  for linear term ",j)
+		if(nrow(LT$K)!=ncol(LT$K)) stop("variance covariance matrix must be square")
+		LT$EVD <- eigen(LT$K,symmetric=TRUE)
+		message("Ok")
+	}
+	
+	if(is.null(LT$K) & (!is.null(LT$EVD)))
+	{
+		message("Checking EVD provided for linear term ",j)
+		if(!is.matrix(LT$EVD$vectors)) stop("eigen-vectors must be a matrix\n")
+		if(nrow(LT$EVD$vectors)!=ncol(LT$EVD$vectors)) stop("eigen-vectors must be a square matrix\n")
+		if(!is.numeric(LT$EVD$values)) stop("eigen-values must be a numeric vector\n")
+		message("Ok")
+	}
+	
+	keep <- LT$EVD$values>1e-10
+	LT$EVD$vectors <- LT$EVD$vectors[,keep]
+	LT$EVD$values <- LT$EVD$values[keep]
+	
+	#X=Gamma*Lambda^{1/2}
+	LT$X<-sweep(x=LT$EVD$vectors,MARGIN=2,STATS=sqrt(LT$EVD$values),FUN="*")
+	
+	#Return the goodies
+	return(LT)
+	
+}
 
-BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
+
+BLRCross=function(y=NULL,my=NULL, vy=NULL, n=NULL,
+                 XX,Xy,nIter=1500,burnIn=500,
                  thin=5,R2=0.5,
                  S0=NULL,df0=5,
                  priors=NULL,
@@ -712,11 +773,32 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
 		burnIn=as.integer(nIter/2)
 		message("burnIn was set to ",burnIn, " because burnIn can not be bigger than nIter")
 	}
-
-	#Assuming all efects are zero
-    RSS=sum(y^2)
 	
-    n=length(y)
+	if(is.null(y))
+	{
+		message("Since y was not provided, you must provide my, vy and n")
+		message("my: sample mean of y")
+		message("vy: sample variance of y")
+		message("n: sample size")
+		
+		if(is.null(my)) stop("you must provide my")
+		if(is.null(vy)) stop("you must provide vy")
+		if(is.null(n)) stop("you must provide n")
+		
+		#Sum of squares of y
+		ssy=(n-1)*vy + n*my^2
+	}else{
+	
+		message("you provided y, so my, vy and n will be ignored (if provided)")
+	
+		ssy=sum(y^2)
+		my=mean(y)
+		vy=var(y)
+		n=length(y)
+	}
+
+	#Assuming all efects are zero, including the intercept, if it exists...
+    RSS=ssy
     
     p=ncol(XX)
     
@@ -724,10 +806,8 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     nCols=table(idPriors)
     
     if(p!=sum(nCols)) stop("The number of columns in X'X is different to the number of elements in idPriors\n")
-    
-    varY=var(y,na.rm=TRUE)
-    
-    varE=varY*(1-R2)
+        
+    varE=vy*(1-R2)
     
     if(is.null(S0))
     {
@@ -764,7 +844,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     		sumVarX=sum(diagonal[idPriors==j])/n
     		idColumns=which(idPriors==j)
     		
-    		if(!(priors[[j]]$model %in% c("FIXED", "BRR", "BayesA", "BayesB","BayesC","SSVS"))) 
+    		if(!(priors[[j]]$model %in% c("FIXED", "BRR", "BayesA", "BayesB","BayesC","SSVS","RKHS"))) 
             {
                 stop("Error in priors[[", j, "]]", " model ", priors[[j]]$model, " not implemented (note: evaluation is case sensitive)")
             }
@@ -781,7 +861,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
             }
     		
     		ETA[[j]]=switch(priors[[j]]$model,
-    						BayesA=setLT.BayesA.Cross(prior=priors[[j]],y=y,j=j,p=nCols[j],
+    						BayesA=setLT.BayesA.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
     											idColumns=idColumns,sumVarX=sumVarX,
     											R2=R2,nLT=nLT,verbose=verbose,
     											saveAt=saveAt,
@@ -789,7 +869,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     											thin=thin,
     											nIter=nIter,
     											burnIn=burnIn),
-    						BayesB=setLT.BayesB.Cross(prior=priors[[j]],y=y,j=j,p=nCols[j],
+    						BayesB=setLT.BayesB.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
     											idColumns=idColumns,sumVarX=sumVarX,
     											R2=R2,nLT=nLT,verbose=verbose,
     											saveAt=saveAt,
@@ -797,7 +877,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     											thin=thin,
     											nIter=nIter,
     											burnIn=burnIn),
-    						BayesC=setLT.BayesC.Cross(prior=priors[[j]],y=y,j=j,p=nCols[j],
+    						BayesC=setLT.BayesC.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
     											idColumns=idColumns,sumVarX=sumVarX,
     											R2=R2,nLT=nLT,verbose=verbose,
     											saveAt=saveAt,
@@ -805,7 +885,15 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     											thin=thin,
     											nIter=nIter,
     											burnIn=burnIn),
-    						BRR=setLT.BRR.Cross(prior=priors[[j]],y=y,j=j,p=nCols[j],
+    						BRR=setLT.BRR.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
+    											idColumns=idColumns,sumVarX=sumVarX,
+    											R2=R2,nLT=nLT,verbose=verbose,
+    											saveAt=saveAt,
+    											rmExistingFiles=rmExistingFiles,
+    											thin=thin,
+    											nIter=nIter,
+    											burnIn=burnIn),
+    						RKHS=setLT.BRR.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
     											idColumns=idColumns,sumVarX=sumVarX,
     											R2=R2,nLT=nLT,verbose=verbose,
     											saveAt=saveAt,
@@ -817,7 +905,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     						                  Name=priors[[j]]$Name,
     						                  saveAt=saveAt,
     						                  rmExistingFiles=rmExistingFiles),
-    						SSVS=setLT.SSVS.Cross(prior=priors[[j]],y=y,j=j,p=nCols[j],
+    						SSVS=setLT.SSVS.Cross(prior=priors[[j]],vy=vy,j=j,p=nCols[j],
     											idColumns=idColumns,sumVarX=sumVarX,
     											R2=R2,nLT=nLT,verbose=verbose,
     											saveAt=saveAt,
@@ -890,7 +978,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     			RSS=ans[[4]]
     			
     			#Sampling hyper-parameters   
-    			SS=sum((ETA[[j]]$a)^2)+ETA[[j]]$S
+    			SS=(ETA[[j]]$a)^2 + ETA[[j]]$S
     			DF=ETA[[j]]$df0+1
     			ETA[[j]]$varB=SS/rchisq(n=ETA[[j]]$p,df=DF)
     			
@@ -955,7 +1043,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     		} #End of SSVS
     		
     		#BRR case
-    		if(priors[[j]]$model=="BRR")
+    		if(priors[[j]]$model%in%c("BRR","RKHS"))
     		{
     			
     			
@@ -1019,7 +1107,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
                 	
                 }
                 
-                if (priors[[j]]$model == "BRR") 
+                if (priors[[j]]$model %in% c("BRR","RKHS")) 
                 {
                     write(ETA[[j]]$varB, file = ETA[[j]]$fileOut, append = TRUE)
                 }
@@ -1114,7 +1202,7 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
     				}
     			
     				#BRR case
-    				if(priors[[j]]$model=="BRR")
+    				if(priors[[j]]$model%in%c("BRR","RKHS"))
     				{
 						ETA[[j]]$post_b = ETA[[j]]$post_b * k + ETA[[j]]$b/nSums
                       	ETA[[j]]$post_b2 = ETA[[j]]$post_b2 * k + (ETA[[j]]$b^2)/nSums
@@ -1216,7 +1304,10 @@ BLRCross=function(y,XX,Xy,nIter=1500,burnIn=500,
 }
 
 
-BLRXy<-function(y, intercept=TRUE, ETA, 
+#No missing values allowed
+#For RKHS we assume that X=Gamma*Lambda^{1/2} is provided...
+
+BLRXy_no_miss<-function(y, intercept=TRUE, ETA, 
                nIter = 1500, burnIn = 500, thin = 5, 
                S0 = NULL, df0 = 5, R2 = 0.5, 
                verbose = TRUE, saveAt="",rmExistingFiles = TRUE) 
@@ -1242,7 +1333,7 @@ BLRXy<-function(y, intercept=TRUE, ETA,
 		#Check supported models, number of columns in each element of the list
 		for(j in 1:nLT)
 		{
-			if(!(ETA[[j]]$model %in% c("FIXED", "BRR", "BayesA", "BayesB","BayesC","SSVS"))) 
+			if(!(ETA[[j]]$model %in% c("FIXED", "BRR", "BayesA", "BayesB","BayesC","SSVS","RKHS"))) 
 			{
 				stop("Error in ETA[[", j, "]]", " model ", ETA[[j]]$model, " not implemented (note: evaluation is case sensitive)")
 			}
@@ -1332,3 +1423,97 @@ BLRXy<-function(y, intercept=TRUE, ETA,
                  
 		return(out)
 }
+
+#Missing values allowed
+BLRXy<-function(y, intercept=TRUE, ETA, 
+               nIter = 1500, burnIn = 500, thin = 5, 
+               S0 = NULL, df0 = 5, R2 = 0.5, 
+               verbose = TRUE, saveAt="",rmExistingFiles = TRUE)
+
+{
+	nLT <- ifelse(is.null(ETA), 0, length(ETA))
+	
+	n<-length(y)
+	
+	if(!(nLT>0)) stop("ETA should have at least one component\n")
+	
+	if(is.null(names(ETA)))
+    {
+    		names(ETA)<-rep("",nLT)
+    }
+    
+	missings<-any(is.na(y))
+	
+	if(missings)
+	{
+		whichNA<-is.na(y)
+	}
+	
+	for(j in 1:nLT)
+	{		
+			if(!(ETA[[j]]$model %in% c("FIXED", "BRR", "BayesA", "BayesB","BayesC","SSVS","RKHS"))) 
+			{
+				stop("Error in ETA[[", j, "]]", " model ", ETA[[j]]$model, " not implemented (note: evaluation is case sensitive)")
+			}
+			
+			#We set linear term to fit RKHS as BRR
+			if(ETA[[j]]$model=="RKHS")
+			{
+				ETA[[j]]<-setLT.RKHS.Cross(ETA[[j]],j)
+			}
+			
+			if(!is.null(ETA[[j]]$X))
+			{
+				if(is.matrix(ETA[[j]]$X))
+				{
+					if(nrow(ETA[[j]]$X)!=n) stop("Error in ETA[[", j, "]], X should have ",n," rows")
+				}else{
+					stop("Error in ETA[[", j, "]], X should be a matrix")
+				}
+				
+				#Keep only the rows without missing values
+				if(missings)
+				{
+					ETA[[j]]$X_NAs<-ETA[[j]]$X[whichNA,,drop=FALSE]
+					ETA[[j]]$X<-ETA[[j]]$X[!whichNA,,drop=FALSE]
+				}
+			}else{
+				stop("Error in ETA[[", j, "]], X is NULL")
+			}
+	}
+		
+	if(missings)
+	{
+		out<-BLRXy_no_miss(y=y[!whichNA],intercept=intercept,ETA=ETA,
+		           		   nIter=nIter, burnIn=burnIn,thin=thin,
+		                   S0 = S0, df0=df0, R2=R2,
+		                   verbose=verbose,saveAt=saveAt,
+		                   rmExistingFiles=rmExistingFiles)
+		yHat<-rep(0,n)                   
+		yHat[!whichNA]<-out$yHat
+		
+		for(j in 1:nLT)
+        {
+        	yHat[whichNA]<-yHat[whichNA]+as.vector(ETA[[j]]$X_NAs%*%out$ETA[[j]]$b)
+        }
+        
+        if(intercept)
+        {
+        	yHat[whichNA]<-yHat[whichNA]+out$mu
+        }
+		
+		out$yHat<-yHat
+	}else{
+	
+		out<-BLRXy_no_miss(y=y,intercept=intercept,ETA=ETA,
+		           		   nIter=nIter, burnIn=burnIn,thin=thin,
+		                   S0 = S0, df0=df0, R2=R2,
+		                   verbose=verbose,saveAt=saveAt,
+		                   rmExistingFiles=rmExistingFiles)
+		                   
+	}
+	
+	return(out)
+	
+}
+

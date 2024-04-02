@@ -711,7 +711,7 @@ setLT.BayesBandC=function(LT,y,n,j,weights,saveAt,R2,nLT,rmExistingFiles, groups
     		LT$rate0=(LT$shape0-1)/LT$S0
   	}
         LT$S=LT$S0
-  	LT$varB = LT$varB=rep(LT$S0/(LT$df0+2),LT$p)
+  	LT$varB=rep(LT$S0/(LT$df0+2),LT$p)
         fname=paste(saveAt,LT$Name,"_parBayesB.dat",sep="")
   }else{
 	LT$varB = LT$S0
@@ -882,12 +882,12 @@ welcome=function()
   message("\n");
   message("#--------------------------------------------------------------------#");
   message("#        _\\\\|//_                                                     #");
-  message("#       (` o-o ')      BGLR v1.1.1                                   #");
+  message("#       (` o-o ')      BGLR v1.1.2                                   #");
   message("#------ooO-(_)-Ooo---------------------------------------------------#");
   message("#                      Bayesian Generalized Linear Regression        #");
   message("#                      Gustavo de los Campos, gdeloscampos@gmail.com #");
   message("#    .oooO     Oooo.   Paulino Perez-Rodriguez, perpdgo@gmail.com    #");
-  message("#    (   )     (   )   December, 2023                                #");
+  message("#    (   )     (   )   April, 2024                                   #");
   message("#_____\\ (_______) /_________________________________________________ #");
   message("#      \\_)     (_/                                                   #");
   message("#                                                                    #");

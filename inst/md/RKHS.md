@@ -1,6 +1,6 @@
 #### Semi-parametric regression
 
-Examples (modified) from [de los Campos et al., Genetics Research, 2010](http://www.ncbi.nlm.nih.gov/pubmed/20943010).
+Examples (modified) from [de los Campos et al., Genetics Research, 2010](https://doi.org/10.1017/s0016672310000285).
 
 **(1) RKHS with a Gaussian Kernel and fixed bandwidth parameter**
 
@@ -12,6 +12,9 @@ Examples (modified) from [de los Campos et al., Genetics Research, 2010](http://
   D<-as.matrix(dist(X,method="euclidean"))^2
   D<-D/mean(D)
   h<-1
+
+### KERNEL ######################################
+  K<-exp(-h*D)
   
 ### GENERATES TESTING SET #######################
  set.seed(12345)
@@ -33,7 +36,7 @@ Examples (modified) from [de los Campos et al., Genetics Research, 2010](http://
 
 ```R
  h=c(.01,.1,.4,.8,1.5,3,5)
- PMSE<-numeric() ; VARE<-numeric(); VARU<-numeric() ;
+ PMSE<-numeric(); VARE<-numeric(); VARU<-numeric();
  pD<-numeric(); DIC<-numeric()
  fmList<-list()
 

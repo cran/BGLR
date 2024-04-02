@@ -32,8 +32,8 @@ ETA=list(list(X=W, model="FIXED"),
 	      plus regression on Z, with regression coefficients modeled as in the 
           Bayesian Ridge Regression.
 
-	      The following options are implemented for linear regressions: FIXED (Flat prior),
-	      BayesA, BayesB, BRR (Gaussian prior), BayesC and SSVS. 
+	      The following options are implemented for linear regressions: FIXED (flat prior),
+	      BayesA, BayesB, BRR (Gaussian prior), BayesC, SSVS and RKHS. 
              }
    \item{nIter,burnIn, thin}{(integer) the number of iterations, burn-in and thinning.}
    \item{saveAt}{(string) this may include a path and a pre-fix that will be added to the name of the files that are saved as the program runs.}
@@ -73,6 +73,10 @@ n=1500
 
 data(mice)
 X=scale(mice.X[1:n,1:p],center=TRUE)
+
+A=mice.A
+A=A[1:n,1:n]
+
 QTL=seq(from=50,to=p-50,by=80)
 
 b=rep(0,p)
@@ -90,6 +94,26 @@ ETA=list(list(X=X,model="BayesA"))
 
 fm1=BLRXy(y=y,ETA=ETA)
 plot(fm1$yHat,y)
+
+#Example 2, missing values
+yNA<-y
+whichNA<-sample(1:length(y),size=100,replace=FALSE)
+yNA[whichNA]<-NA
+
+fm2<-BLRXy(y=yNA,ETA=ETA)
+plot(fm2$yHat,y)
+points(fm2$yHat[whichNA],y[whichNA],col="red",pch=19)
+
+#Example 3, RKHS with no-missing values
+ETA<-list(list(K=A,model="RKHS"))
+fm3<-BLRXy(y=y,ETA=ETA)
+plot(fm3$yHat,y)
+
+#Example 4, RKHS with missing values
+fm4<-BLRXy(y=yNA,ETA=ETA)
+plot(fm4$yHat,y)
+points(fm4$yHat[whichNA],y[whichNA],col="red",pch=19)
+
 
 }
 
