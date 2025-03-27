@@ -6,13 +6,12 @@ In the following example we show how to fit a GBLUP model (i.e., a Gaussian proc
 <div id="menu" />
   
    * [Using oringial inputs (e.g., SNPs)](#BRR)
-   
    * [Using a G-matrix (or kernel)](#RKHS)
-   
    * [Using eigenvalues and eigenvectors](#RKHS2)
-   * [Using scaled-principal components)](#PC)
+   * [Using scaled-principal components](#PC)
    * [Using a Cholesky decomposition](#CHOL)
    * [Using a QR decomposition](#QR)
+   * [Using a Cholesky decomposition and sparse matrix](#CholSparse)
    
 
 <div id="BRR" />
@@ -156,5 +155,68 @@ fm7=BGLR( y=y,ETA=list(list(X=Rt,model='BRR',lower_tri=TRUE)),nIter=nIter,
 
 ```
 [Menu](#menu)
+
+<div id="CholSparse" />
+
+
+---------------------------------------------
+**(7) Using the Cholesky decompositon and sparse matrix `model='BRR_sparse'`**
+  This approach won't work if G is not positive definite; in our case the matrix is positive semi-definite, we can make it positive definite by adding a small constant to the diagonal. The resulting Cholesky factor can be represented as as sparse matrix using the 
+  library Matrix.
+
+  
+```R
+rm(list=ls())
+library(BGLR)
+library(Matrix)
+
+data(wheat)
+X<-scale(wheat.X)/sqrt(ncol(wheat.X))
+y<-wheat.Y[,1]
+G<-tcrossprod(X)
+diag(G)<-diag(G)+1/1e4
+L<-t(chol(G))
+Ls<-as(L,"dgCMatrix")
+
+object.size(L)
+object.size(Ls)
+
+#Non zero values
+Ls@x
+
+#Cumulative number of non zero elements
+Ls@p
+
+#row index of each element
+Ls@i
+
+####################################
+#WARNING: EXPERIMENTAL VERSION...
+####################################
+
+ETAs<-list(list(X=Ls,model="BRR_sparse"))
+
+set.seed(123)
+fms<-BGLR(y=y,ETA=ETAs,nIter=10000,burnIn=5000)
+unlink("*.dat")
+
+plot(y,fms$yHat)
+
+ETA<-list(list(X=as.matrix(Ls),model="BRR"))
+
+set.seed(123)
+fm<-BGLR(y=y,ETA=ETA,nIter=10000,burnIn=5000)
+unlink("*.dat")
+
+plot(y,fm$yHat)
+
+plot(fms$yHat,fm$yHat)
+cor(fms$yHat,fm$yHat)
+
+plot(fms$ETA[[1]]$b,fm$ETA[[1]]$b)
+cor(fms$ETA[[1]]$b,fm$ETA[[1]]$b)
+```
+[Menu](#menu)
+
 
 [Back to examples](https://github.com/gdlc/BGLR-R/blob/master/README.md)

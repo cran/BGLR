@@ -27,7 +27,9 @@ extern SEXP sample_beta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sample_beta_BB_BCp(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sample_beta_BB_BCp_groups(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sample_beta_groups(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP sample_beta_groups_sparse(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sample_beta_lower_tri(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP sample_beta_sparse(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sampler_ACSS(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sampler_BRR_mt(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP sampler_BRR_mt_fixed(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -49,7 +51,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"sample_beta_BB_BCp",        (DL_FUNC) &sample_beta_BB_BCp,        11},
     {"sample_beta_BB_BCp_groups", (DL_FUNC) &sample_beta_BB_BCp_groups, 13},
     {"sample_beta_groups",        (DL_FUNC) &sample_beta_groups,        11},
+    {"sample_beta_groups_sparse", (DL_FUNC) &sample_beta_groups_sparse, 12},
     {"sample_beta_lower_tri",     (DL_FUNC) &sample_beta_lower_tri,      9},
+    {"sample_beta_sparse",        (DL_FUNC) &sample_beta_sparse,        10},
     {"sampler_ACSS",              (DL_FUNC) &sampler_ACSS,              13},
     {"sampler_BRR_mt",            (DL_FUNC) &sampler_BRR_mt,            11},
     {"sampler_BRR_mt_fixed",      (DL_FUNC) &sampler_BRR_mt_fixed,      10},

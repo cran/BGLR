@@ -261,6 +261,12 @@ setCov.FA<-function(Cov,traits,nD,j,mo,saveAt)
 		Cov$var<-100
 		message("var was set to 100")
 	}
+
+	if(is.null(Cov$varimax)){
+
+		Cov$varimax=TRUE
+		message("Rotation set to varimax")
+	}
 			
 	
 	if(is.null(Cov$M)) stop("M can not be null")
@@ -281,16 +287,24 @@ setCov.FA<-function(Cov,traits,nD,j,mo,saveAt)
 	Cov$Omega<-riwish(v=traits,S=diag(Cov$S0))
 	
 	sdU <- sqrt(diag(Cov$Omega))
-    FA <- factanal(covmat = Cov$Omega, factors = Cov$nF)
-    Cov$W <- matrix(nrow = traits, ncol = Cov$nF, 0)
-    Cov$W[Cov$M] <- (diag(sdU) %*% FA$loadings)[Cov$M]
-    Cov$PSI <- (sdU^2) * FA$uniquenesses + 1e-04
-    Cov$Omega <- tcrossprod(Cov$W) + diag(Cov$PSI)
-    Cov$Omegainv<-solve(Cov$Omega)
+
+	# Initializing common factors and uniquenesses
+        if(is.null(Cov$W)){
+  	  FA <- factanal(covmat = Cov$Omega, factors = Cov$nF,nstart=10)
     
-    Cov$F <- matrix(nrow = nD, ncol = Cov$nF, 0)
+          Cov$W <- matrix(nrow = traits, ncol = Cov$nF, 0)
+          Cov$W[Cov$M] <- (diag(sdU) %*% FA$loadings)[Cov$M]
+          Cov$PSI <- (sdU^2) * FA$uniquenesses + 1e-04
+        }else{
+	  Cov$PSI<-(sdU^2)/2 # assumining factors explain 50% of the variances	
+	}
         
-    #Objects for saving posterior means for MCMC
+	Cov$Omega <- tcrossprod(Cov$W) + diag(Cov$PSI)
+        Cov$Omegainv<-solve(Cov$Omega)
+     
+        Cov$F <- matrix(nrow = nD, ncol = Cov$nF, 0)
+        
+       #Objects for saving posterior means for MCMC
 	Cov$post_Omega<-matrix(0,nrow=traits,ncol=traits)
 	Cov$post_Omega2<-matrix(0,nrow=traits,ncol=traits)
 	Cov$post_W<-matrix(0,nrow=traits,ncol=Cov$nF)
@@ -917,13 +931,17 @@ setResCov<-function(resCov,traits,error,Sy,R2,saveAt)
 		}
 				
 		sdU <- sqrt(diag(resCov$R))
-        FA <- factanal(covmat = resCov$R, factors = resCov$nF)
-        resCov$W <- matrix(nrow = traits, ncol = resCov$nF, 0)
-        resCov$W[resCov$M] <- (diag(sdU) %*% FA$loadings)[resCov$M]
-        resCov$PSI <- (sdU^2) * FA$uniquenesses + 1e-04
-        resCov$R <- tcrossprod(resCov$W) + diag(resCov$PSI)
-        resCov$Rinv<-solve(resCov$R)
-        resCov$F <- matrix(nrow = nrow(error), ncol = resCov$nF, 0)
+		if(is.null(resCov$W)){
+                  FA <- factanal(covmat = resCov$R, factors = resCov$nF,nstart=10)
+                  resCov$W <- matrix(nrow = traits, ncol = resCov$nF, 0)
+                  resCov$W[resCov$M] <- (diag(sdU) %*% FA$loadings)[resCov$M]
+		  resCov$PSI <- (sdU^2) * FA$uniquenesses + 1e-04
+		}else{
+                  resCov$PSI<-(sdU^2)/2 # initializing assuming common factors explain 50% for
+		}
+                resCov$R <- tcrossprod(resCov$W) + diag(resCov$PSI)
+                resCov$Rinv<-solve(resCov$R)
+                resCov$F <- matrix(nrow = nrow(error), ncol = resCov$nF, 0)
         
         #Objects for saving posterior means for MCMC
 		resCov$post_W<-matrix(0,nrow=traits,ncol=resCov$nF)
@@ -1090,7 +1108,7 @@ sample_G0_REC <- function(U, M, PSI, traits, priorVar = 100,
 
 
 sample_G0_FA <- function(U, F, M, B, PSI, traits, nF, nD, 
-                       df0 = rep(1, traits), S0 = rep(1/100,traits), priorVar = 100) 
+                       df0 = rep(1, traits), S0 = rep(1/100,traits), priorVar = 100,varimaxRotate=TRUE) 
 {
     ## sampling common factors LOOP OVER FACTORS
     for (i in 1:nF) 
@@ -1126,7 +1144,7 @@ sample_G0_FA <- function(U, F, M, B, PSI, traits, nF, nD,
         PSI[i] <- SS/rchisq(df = df, n = 1)
     }
     
-    if (nF > 1) 
+    if ((nF > 1)&varimaxRotate) 
     {
         B <- varimax(B)$loadings[]
     }
@@ -1533,7 +1551,7 @@ Multitrait<-function(y,
 						        	      traits=traits, nF=ETA[[j]]$Cov$nF, 
 						        	      nD=ETA[[j]]$Cov$nD, df0 = ETA[[j]]$Cov$df0, 
                        					  S0 = ETA[[j]]$Cov$S0, 
-                       					  priorVar = ETA[[j]]$Cov$var) 
+                       					  priorVar = ETA[[j]]$Cov$var,varimaxRotate=ETA[[j]]$Cov$varimax) 
 
 						ETA[[j]]$Cov$F<-tmp$F
 						ETA[[j]]$Cov$PSI<-tmp$PSI
@@ -1624,7 +1642,7 @@ Multitrait<-function(y,
 						        	      traits=traits, nF=ETA[[j]]$Cov$nF, 
 						        	      nD=ETA[[j]]$Cov$nD, df0 = ETA[[j]]$Cov$df0, 
                        					  S0 = ETA[[j]]$Cov$S0, 
-                       					  priorVar = ETA[[j]]$Cov$var) 
+                       					  priorVar = ETA[[j]]$Cov$var,varimaxRotate=ETA[[j]]$Cov$varimax) 
 
 						ETA[[j]]$Cov$F<-tmp$F
 						ETA[[j]]$Cov$PSI<-tmp$PSI
@@ -1715,7 +1733,7 @@ Multitrait<-function(y,
 						          traits=traits, nF=resCov$nF, nD=nrow(error),
                        			  df0 = resCov$df0, 
                        			  S0 = resCov$S0, 
-                       			  priorVar = resCov$var)
+                       			  priorVar = resCov$var,varimaxRotate=resCov$varimax)
 
                 resCov$F<-tmp$F
 				resCov$PSI<-tmp$PSI
@@ -1807,7 +1825,7 @@ Multitrait<-function(y,
 			{
 				if (sum(resCov$M) > 0) 
 				{
-					tmp <- resCov$W[resCov$M]
+					tmp <- resCov$W
 					write(tmp, ncolumns = length(tmp), file = resCov$f_W, append = TRUE, 
 					      sep = " ")
 					rm(tmp)
@@ -1826,7 +1844,7 @@ Multitrait<-function(y,
 					{
 						if (sum(ETA[[j]]$Cov$M) > 0) 
 						{
-							tmp <- ETA[[j]]$Cov$W[ETA[[j]]$Cov$M]
+							tmp <- ETA[[j]]$Cov$W
 							write(tmp, ncolumns = length(tmp), file = ETA[[j]]$Cov$f_W, 
 							      append = TRUE, sep = " ")
 							rm(tmp)
